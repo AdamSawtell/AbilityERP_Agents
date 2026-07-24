@@ -3,6 +3,7 @@ import { env, SERVICE_VERSION, startedAt } from '../config';
 import { testConnection } from '../db/pool';
 import { getConfig } from '../services/configStore';
 import { getLastScanTimestamps } from '../services/audit';
+import { getLastEmergencyScan } from '../worker/emergency';
 
 export const healthRouter = Router();
 
@@ -10,6 +11,7 @@ healthRouter.get('/health', async (_req, res) => {
   const db = await testConnection();
   let config = null;
   let lastScan = { emergency: null as string | null, planner: null as string | null };
+  const memoryScan = getLastEmergencyScan();
 
   if (db.ok) {
     config = await getConfig();
@@ -18,6 +20,10 @@ healthRouter.get('/health', async (_req, res) => {
     } catch {
       // tables may not exist until migrate
     }
+  }
+
+  if (!lastScan.emergency && memoryScan?.finishedAt) {
+    lastScan.emergency = memoryScan.finishedAt;
   }
 
   const uptimeSeconds = Math.floor((Date.now() - startedAt.getTime()) / 1000);
@@ -29,6 +35,7 @@ healthRouter.get('/health', async (_req, res) => {
     service: 'ross-roster',
     ticket: 'SAW042',
     lastScan,
+    lastEmergencySummary: memoryScan,
     config: config
       ? {
           auto_approve_threshold: config.auto_approve_threshold,

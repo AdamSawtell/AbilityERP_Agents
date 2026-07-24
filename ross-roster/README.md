@@ -13,6 +13,13 @@ Build authority: [`docs/PHASE-1-CONTRACT.md`](../docs/PHASE-1-CONTRACT.md).
 - Vacant shifts + matching engine (hard/soft rules aligned with SAW003 leave/needs)
 - `POST /api/v1/assign` (staff line fill/insert + audit; Pathways in 1d)
 
+### Phase 1c
+- Emergency Rosterer cron (config `scan_interval_minutes`, default 30)
+- `POST /api/v1/worker/run`, `GET /api/v1/proposals/pending`
+- Proposals + gap logging on zero-match (no auto-assign in Phase 1)
+
+**Deploy target:** AbilityERP EC2 `54.206.8.250` only (`/opt/ross-roster`, PM2 `ross-roster`).
+
 ## Local
 
 ```bash

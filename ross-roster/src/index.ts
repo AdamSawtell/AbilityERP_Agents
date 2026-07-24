@@ -7,8 +7,9 @@ import { auditRouter } from './routes/audit';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
 import { shiftsRouter } from './routes/shifts';
-import { stubRouter } from './routes/stubs';
+import { workerRouter } from './routes/worker';
 import { writeAudit } from './services/audit';
+import { startEmergencyCron, stopEmergencyCron } from './worker/emergency';
 
 async function main(): Promise<void> {
   const app = express();
@@ -23,7 +24,7 @@ async function main(): Promise<void> {
   // Health is public so nginx / ops can probe without a key.
   app.use(healthRouter);
 
-  app.use('/api/v1', apiKeyAuth, shiftsRouter, stubRouter, auditRouter, gapsRouter);
+  app.use('/api/v1', apiKeyAuth, shiftsRouter, workerRouter, auditRouter, gapsRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'not_found' });
@@ -56,14 +57,16 @@ async function main(): Promise<void> {
     } catch (err) {
       console.warn('[ross] could not write startup audit (migrate first?)', err);
     }
+    startEmergencyCron();
   }
 
   const server = app.listen(env.port, () => {
-    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW042 Phase 1a)`);
+    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW042 Phase 1c)`);
   });
 
   const shutdown = async (signal: string) => {
     console.log(`[ross] ${signal} — shutting down`);
+    stopEmergencyCron();
     server.close();
     await pool.end();
     process.exit(0);

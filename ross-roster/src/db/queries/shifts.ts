@@ -171,11 +171,16 @@ export async function loadShiftContext(shiftId: number): Promise<ShiftContext | 
     );
 
     for (const n of needs.rows) {
-      if (n.aberp_needtype === 'CRD' && n.aberp_credentials_id) {
+      const needType = (n.aberp_needtype ?? '').toUpperCase();
+      if ((needType === 'CRD' || (!needType && n.aberp_credentials_id)) && n.aberp_credentials_id) {
         credentialIds.push(Number(n.aberp_credentials_id));
         if (n.credential_name) credentialNames.push(n.credential_name);
       }
-      if (n.aberp_needtype === 'GDR' && n.aberp_gender_id) {
+      if ((needType === 'GDR' || (!needType && n.aberp_gender_id)) && n.aberp_gender_id) {
+        genderIds.push(Number(n.aberp_gender_id));
+      }
+      // Some rows carry both; always capture gender_id when present on an active need
+      if (n.aberp_gender_id && needType !== 'CRD') {
         genderIds.push(Number(n.aberp_gender_id));
       }
     }
