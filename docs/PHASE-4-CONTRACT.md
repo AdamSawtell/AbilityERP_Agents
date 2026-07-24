@@ -26,8 +26,8 @@
 | **4a** | Workforce Planner reports | Daily briefing API + cron + Planner admin page | **done** (`e581294`) |
 | **4b** | Training gaps + Request Training | Gaps page actions / Pathways | **done** (`d74c38e`) |
 | **4c** | Credential watch + bulk remind | Expiry radar + Pathways remind | **done** (`a032724`) |
-| **4d** | Next Period forecast | Forecast API + Planner table + Dashboard Next rail | **done** (this slice) |
-| **4e** | Audit log + export | Filters + CSV export | **done** (this slice) |
+| **4d** | Next Period forecast | Forecast API + Planner table + Dashboard Next rail | **done** (`9b942ed`) |
+| **4e** | Audit log + export | Filters + CSV export | **done** (`9b942ed`) |
 
 **Phase 4d exit:**
 
