@@ -23,7 +23,7 @@
 
 | ID | Scope item | Phase 4 contract | Status |
 |---|---|---|---|
-| **4a** | Workforce Planner reports | Daily briefing API + cron + Planner admin page | **in progress** |
+| **4a** | Workforce Planner reports | Daily briefing API + cron + Planner admin page | **done** (`e581294`) |
 | **4b** | Training gaps + Request Training | Gaps page actions / Pathways | later |
 | **4c** | Credential watch + bulk remind | Expiry radar + Pathways remind | later |
 | **4d** | Next Period forecast | Forecast on Next horizon / Planner | later |
