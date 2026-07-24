@@ -477,7 +477,7 @@ button {
 .record-head {
   display: flex;
   justify-content: space-between;
-  align-items: start;
+  align-items: flex-start;
   gap: 12px;
   margin-bottom: 18px;
 }
