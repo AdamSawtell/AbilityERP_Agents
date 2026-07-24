@@ -6,6 +6,7 @@ import { apiKeyAuth } from './middleware/auth';
 import { auditRouter } from './routes/audit';
 import { configRouter } from './routes/config';
 import { confirmationsRouter } from './routes/confirmations';
+import { coverageRouter } from './routes/coverage';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
 import { pathwaysRouter } from './routes/pathways';
@@ -43,6 +44,7 @@ async function main(): Promise<void> {
     profilesRouter,
     confirmationsRouter,
     swapsRouter,
+    coverageRouter,
   );
 
   app.use((_req, res) => {

@@ -133,3 +133,29 @@ export type SwapCycleSummary = {
   considered: number;
   errors: string[];
 };
+
+export type CoverageCell = {
+  day: string;
+  band: 'morning' | 'afternoon' | 'evening';
+  shifts: number;
+  required: number;
+  assigned: number;
+  vacant: number;
+  fillRate: number;
+  level: 'full' | 'ok' | 'thin' | 'gap' | 'empty';
+};
+
+export type CoverageHeatmap = {
+  horizon: string;
+  period: { start: string; end: string };
+  days: { date: string; label: string }[];
+  bands: CoverageCell['band'][];
+  cells: CoverageCell[];
+  totals: {
+    shifts: number;
+    required: number;
+    assigned: number;
+    vacant: number;
+    fillRate: number;
+  };
+};

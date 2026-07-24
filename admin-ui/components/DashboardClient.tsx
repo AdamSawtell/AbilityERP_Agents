@@ -1,7 +1,15 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import type { AuditEntry, Gap, Horizon, Proposal, VacantShift } from '@/lib/ross';
+import type {
+  AuditEntry,
+  CoverageHeatmap as CoverageData,
+  Gap,
+  Horizon,
+  Proposal,
+  VacantShift,
+} from '@/lib/ross';
+import { CoverageHeatmap } from '@/components/CoverageHeatmap';
 import { RecordPanel, type RecordTarget } from '@/components/RecordPanel';
 
 type Health = {
@@ -53,6 +61,7 @@ export function DashboardClient() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [gaps, setGaps] = useState<Gap[]>([]);
   const [vacant, setVacant] = useState<VacantShift[]>([]);
+  const [coverage, setCoverage] = useState<CoverageData | null>(null);
   const [activity, setActivity] = useState<AuditEntry[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [safeCount, setSafeCount] = useState(0);
@@ -93,9 +102,13 @@ export function DashboardClient() {
           res,
           json: await res.json(),
         })),
+        fetch(`/api/coverage?horizon=${horizon}`).then(async (res) => ({
+          res,
+          json: await res.json(),
+        })),
       ]);
 
-      const [p, g, h, a, v] = settled;
+      const [p, g, h, a, v, cov] = settled;
       const errors: string[] = [];
 
       if (p.status === 'fulfilled' && p.value.res.ok) {
@@ -125,6 +138,10 @@ export function DashboardClient() {
 
       if (v.status === 'fulfilled' && v.value.res.ok) {
         setVacant(v.value.json.shifts ?? []);
+      }
+
+      if (cov.status === 'fulfilled' && cov.value.res.ok && !cov.value.json.error) {
+        setCoverage(cov.value.json as CoverageData);
       }
 
       if (errors.length) {
@@ -573,6 +590,11 @@ export function DashboardClient() {
       />
 
       <aside className="dash-rail">
+        <section className="widget">
+          <h3>Coverage · {horizonLabel}</h3>
+          <CoverageHeatmap data={coverage} horizon={horizon} loading={loading} />
+        </section>
+
         <section className="widget">
           <h3>Vacant · {horizonLabel}</h3>
           {vacant.length === 0 ? (

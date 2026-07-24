@@ -1,6 +1,6 @@
 # SAW044 — Ross Phase 3 Contract (Value Features)
 
-> **Status:** In progress on EC2 `54.206.8.250`  
+> **Status:** Complete on EC2 `54.206.8.250` (Entra/Amplify/Skills Manager still deferred)  
 > **Ticket:** SAW044_ross_phase3 · AbilityERP_Agents  
 > **Kind:** app  
 > **Canonical product spec:** [ROSS-SCOPE.md](./ROSS-SCOPE.md) §10.3  
@@ -29,7 +29,14 @@
 | **3b** | Pre-shift confirmation + worker chat | Pathways confirm + REQ/DEC poll + escalate/vacate + Confirms admin | **done** (`11cc4e5`) |
 | **3c** | Swap management | Detect / propose / execute swaps + Swaps admin | **done** (`0fdfb0d`) |
 | **3d** | Record panel | Slide-in shift + worker detail | **done** (`af393e3`) |
-| **3e** | Coverage heatmap | Sidebar heatmap | later |
+| **3e** | Coverage heatmap | Sidebar heatmap | **done** (this slice) |
+
+**Phase 3e exit:**
+
+1. `GET /api/v1/coverage?horizon=` returns day × AM/PM/Eve fill cells  
+2. Dashboard rail shows Coverage heatmap (colour by fill / vacant)  
+3. Horizon tabs refresh coverage with vacant list  
+4. Verified on EC2 **without Entra**
 
 **Phase 3c exit:**
 
@@ -61,8 +68,7 @@
 
 - Microsoft Entra ID / JWT for admin UI  
 - Amplify hosting  
-- Skills Manager runtime editing  
-- Full 3b–3e until after 3a lands
+- Skills Manager runtime editing
 
 ---
 
