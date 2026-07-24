@@ -13,6 +13,7 @@ import {
 } from '../services/skills';
 import { runConfirmCycle } from '../worker/confirm';
 import { runEmergencyScan } from '../worker/emergency';
+import { runLeaveCycle } from '../worker/leave';
 import { runPlannerCycle } from '../worker/planner';
 import { runSwapCycle } from '../worker/swap';
 
@@ -169,9 +170,13 @@ skillsRouter.post('/skills/:key/run', async (req, res) => {
         });
         return;
       }
+      case 'leave_replacer': {
+        const summary = await runLeaveCycle('manual');
+        res.json({ success: true, skillKey: key, result: summary });
+        return;
+      }
       case 'pathways_message':
       case 'credential_watch':
-      case 'leave_replacer':
         res.status(400).json({
           error: 'not_runnable',
           message: `${skill.name} has no standalone runner — use its page or wait for events`,

@@ -10,6 +10,7 @@ import { coverageRouter } from './routes/coverage';
 import { credentialsRouter } from './routes/credentials';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
+import { leaveRouter } from './routes/leave';
 import { pathwaysRouter } from './routes/pathways';
 import { plannerRouter } from './routes/planner';
 import { profilesRouter } from './routes/profiles';
@@ -20,6 +21,7 @@ import { workerRouter } from './routes/worker';
 import { writeAudit } from './services/audit';
 import { startConfirmCron, stopConfirmCron } from './worker/confirm';
 import { startEmergencyCron, stopEmergencyCron } from './worker/emergency';
+import { startLeaveCron, stopLeaveCron } from './worker/leave';
 import { startPlannerCron, stopPlannerCron } from './worker/planner';
 import { startSwapCron, stopSwapCron } from './worker/swap';
 
@@ -52,6 +54,7 @@ async function main(): Promise<void> {
     plannerRouter,
     credentialsRouter,
     skillsRouter,
+    leaveRouter,
   );
 
   app.use((_req, res) => {
@@ -89,10 +92,11 @@ async function main(): Promise<void> {
     startConfirmCron();
     startSwapCron();
     startPlannerCron();
+    startLeaveCron();
   }
 
   const server = app.listen(env.port, () => {
-    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW046 Phase 5)`);
+    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW047 Phase 6)`);
   });
 
   const shutdown = async (signal: string) => {
@@ -101,6 +105,7 @@ async function main(): Promise<void> {
     stopConfirmCron();
     stopSwapCron();
     stopPlannerCron();
+    stopLeaveCron();
     server.close();
     await pool.end();
     process.exit(0);

@@ -289,6 +289,46 @@ export type PlannerBriefing = {
   summaryText: string;
 };
 
+export type LeavePending = {
+  leave_id: number;
+  leave_start: string;
+  leave_end: string;
+  worker_id: number;
+  worker_name: string;
+  shift_id: number;
+  shift_name: string;
+  shift_start: string;
+  staff_line_id: number;
+};
+
+export type LeaveReplacement = {
+  id: number;
+  leave_id: number;
+  shift_id: number;
+  staff_line_id: number | null;
+  original_worker_id: number | null;
+  original_worker_name: string | null;
+  replacement_worker_id: number | null;
+  replacement_worker_name: string | null;
+  score: number | null;
+  status: string;
+  notes: string | null;
+  processed_at: string;
+};
+
+export type LeaveCycleSummary = {
+  startedAt: string;
+  finishedAt: string;
+  leavesScanned: number;
+  overlapsFound: number;
+  vacated: number;
+  assigned: number;
+  proposed: number;
+  failed: number;
+  skipped: number;
+  errors: string[];
+};
+
 export type SkillStatus = 'on' | 'paused' | 'off';
 
 export type Skill = {

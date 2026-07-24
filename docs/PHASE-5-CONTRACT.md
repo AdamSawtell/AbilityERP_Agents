@@ -66,7 +66,7 @@
 - Microsoft Entra ID / JWT  
 - Amplify hosting  
 - Freeform **Add Skill** / draft-publish-rollback  
-- Leave Replacer execution  
+- Leave Replacer execution → **SAW047 / PHASE-6**  
 - LLM prompt editing as live agent instructions  
 
 ---

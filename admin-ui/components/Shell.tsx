@@ -11,6 +11,7 @@ const links = [
   { href: '/credentials', label: 'Credentials' },
   { href: '/confirms', label: 'Confirms' },
   { href: '/swaps', label: 'Swaps' },
+  { href: '/leaves', label: 'Leaves' },
   { href: '/skills', label: 'Skills' },
   { href: '/config', label: 'Config' },
   { href: '/audit', label: 'Audit' },

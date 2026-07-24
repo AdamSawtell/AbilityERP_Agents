@@ -1,0 +1,17 @@
+import { NextResponse } from 'next/server';
+import { rossFetch } from '@/lib/ross';
+
+export async function POST() {
+  try {
+    const data = await rossFetch('/api/v1/leave/run', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'failed' },
+      { status: 502 },
+    );
+  }
+}

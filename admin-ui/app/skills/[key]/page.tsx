@@ -21,6 +21,7 @@ const RUNNABLE = new Set([
   'pre_shift_confirm',
   'swap_handler',
   'planner_briefing',
+  'leave_replacer',
 ]);
 
 function statusLabel(status: SkillStatus): string {

@@ -39,7 +39,7 @@ const LAST_RUN_ACTIONS: Record<string, string[]> = {
   swap_handler: ['swap_proposed', 'swap_approved'],
   planner_briefing: ['daily_plan'],
   credential_watch: ['cred_remind'],
-  leave_replacer: [],
+  leave_replacer: ['leave_replacement'],
 };
 
 const DEFAULT_SOFT_WEIGHTS: Record<string, number> = {
