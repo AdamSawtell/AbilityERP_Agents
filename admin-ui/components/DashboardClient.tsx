@@ -35,25 +35,42 @@ export function DashboardClient() {
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      const [pRes, gRes, hRes, aRes] = await Promise.all([
-        fetch('/api/proposals'),
-        fetch('/api/gaps'),
-        fetch('/api/health'),
-        fetch('/api/audit'),
+      const settled = await Promise.allSettled([
+        fetch('/api/proposals').then(async (res) => ({ res, json: await res.json() })),
+        fetch('/api/gaps').then(async (res) => ({ res, json: await res.json() })),
+        fetch('/api/health').then(async (res) => ({ res, json: await res.json() })),
+        fetch('/api/audit').then(async (res) => ({ res, json: await res.json() })),
       ]);
-      const [pJson, gJson, hJson, aJson] = await Promise.all([
-        pRes.json(),
-        gRes.json(),
-        hRes.json(),
-        aRes.json(),
-      ]);
-      if (!pRes.ok) throw new Error(pJson.error || 'Failed to load proposals');
-      if (!gRes.ok) throw new Error(gJson.error || 'Failed to load gaps');
-      setProposals(pJson.proposals ?? []);
-      setPendingCount(pJson.pendingCount ?? 0);
-      setGaps(gJson.gaps ?? []);
-      setHealth(hJson);
-      setActivity((aJson.entries ?? []).slice(0, 8));
+
+      const [p, g, h, a] = settled;
+      const errors: string[] = [];
+
+      if (p.status === 'fulfilled' && p.value.res.ok) {
+        setProposals(p.value.json.proposals ?? []);
+        setPendingCount(p.value.json.pendingCount ?? 0);
+      } else {
+        errors.push('proposals');
+      }
+
+      if (g.status === 'fulfilled' && g.value.res.ok) {
+        setGaps(g.value.json.gaps ?? []);
+      } else {
+        errors.push('gaps');
+      }
+
+      if (h.status === 'fulfilled' && h.value.res.ok) {
+        setHealth(h.value.json);
+      } else {
+        errors.push('health');
+      }
+
+      if (a.status === 'fulfilled' && a.value.res.ok) {
+        setActivity((a.value.json.entries ?? []).slice(0, 8));
+      }
+
+      if (errors.length) {
+        setError(`Failed to load: ${errors.join(', ')}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Load failed');
     } finally {
@@ -154,7 +171,7 @@ export function DashboardClient() {
             <span className={`status-pill ${ok ? 'ok' : ''}`}>
               {ok ? 'Ross online' : 'Ross degraded'}
             </span>
-            <button className="btn" onClick={() => void refresh()} disabled={loading}>
+            <button className="btn" onClick={() => void refresh()}>
               Refresh
             </button>
             <button className="btn btn-primary" onClick={() => void runScan()} disabled={scanning}>
