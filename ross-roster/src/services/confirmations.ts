@@ -172,13 +172,19 @@ export async function markConfirmation(
 ): Promise<ConfirmationRow | null> {
   const { rows } = await query<ConfirmationRow>(
     `UPDATE adempiere.rostering_agent_confirmations
-     SET status = $2,
-         responded_at = CASE WHEN $2 IN ('confirmed','declined') THEN NOW() ELSE responded_at END,
-         escalated_at = CASE WHEN $2 = 'escalated' THEN NOW() ELSE escalated_at END,
+     SET status = $2::varchar,
+         responded_at = CASE
+           WHEN $2::text IN ('confirmed','declined') THEN NOW()
+           ELSE responded_at
+         END,
+         escalated_at = CASE
+           WHEN $2::text = 'escalated' THEN NOW()
+           ELSE escalated_at
+         END,
          notes = CASE
-           WHEN $3::text IS NULL OR $3 = '' THEN notes
-           WHEN notes IS NULL OR notes = '' THEN $3
-           ELSE notes || ' | ' || $3
+           WHEN $3::text IS NULL OR $3::text = '' THEN notes
+           WHEN notes IS NULL OR notes = '' THEN $3::text
+           ELSE notes || ' | ' || $3::text
          END
      WHERE id = $1
      RETURNING *`,
