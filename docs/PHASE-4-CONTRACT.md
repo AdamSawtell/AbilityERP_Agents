@@ -33,7 +33,7 @@
 3. `POST /gaps/:id/resolve` closes a gap  
 4. Admin Gaps: Unresolved/Resolved, training cards + Request/Resolve  
 5. Verified on EC2 **without Entra**
-| **4c** | Credential watch + bulk remind | Expiry radar + Pathways remind | **done** (this slice) |
+| **4c** | Credential watch + bulk remind | Expiry radar + Pathways remind | **done** (`a032724`) |
 
 **Phase 4c exit:**
 
