@@ -48,7 +48,8 @@ const HORIZONS: { id: Horizon; label: string }[] = [
 ];
 
 const HELP_TEXT = [
-  'Commands:',
+  'Ross AI chat — ask in plain English (e.g. "what is urgent today?").',
+  'Shortcuts (also work if AI key is offline):',
   '• scan — run Emergency Rosterer now',
   '• bulk — approve all pending ≥ auto-approve threshold (one per shift)',
   '• status — Ross health + last scan',
@@ -75,12 +76,14 @@ export function DashboardClient() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [command, setCommand] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
   const [record, setRecord] = useState<RecordTarget | null>(null);
   const [chat, setChat] = useState<ChatLine[]>([
     {
       id: 'welcome',
       role: 'ross',
-      text: 'Ross online. Type help for commands, or approve proposals below.',
+      text: 'Ross online. Ask me anything about the roster, or type help.',
       at: Date.now(),
     },
   ]);
@@ -268,9 +271,21 @@ export function DashboardClient() {
     }
   }
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch('/api/agent/status');
+        const json = await res.json();
+        if (res.ok) setAiEnabled(Boolean(json.aiEnabled));
+      } catch {
+        setAiEnabled(false);
+      }
+    })();
+  }, []);
+
   async function handleCommand(raw: string) {
     const text = raw.trim();
-    if (!text) return;
+    if (!text || chatBusy) return;
     pushChat('officer', text);
     setCommand('');
 
@@ -294,7 +309,7 @@ export function DashboardClient() {
         : 'never';
       pushChat(
         'ross',
-        `Ross ${online}. Pending ${pendingCount}. Vacant (${horizon}) ${vacant.length}. Last emergency scan: ${last}.`,
+        `Ross ${online}. Pending ${pendingCount}. Vacant (${horizon}) ${vacant.length}. Last emergency scan: ${last}. AI chat: ${aiEnabled ? 'on' : 'off'}.`,
       );
       return;
     }
@@ -325,7 +340,33 @@ export function DashboardClient() {
       return;
     }
 
-    pushChat('ross', `Unknown command "${text}". Type help.`);
+    // Natural language → OpenAI tool chat
+    setChatBusy(true);
+    try {
+      const history = chat.slice(-10).map((line) => ({
+        role: line.role,
+        content: line.text,
+      }));
+      const res = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || json.message || 'Chat failed');
+      setAiEnabled(Boolean(json.aiEnabled));
+      pushChat('ross', String(json.reply || '…'));
+      if (json.aiEnabled) await refresh();
+    } catch (err) {
+      pushChat(
+        'ross',
+        err instanceof Error
+          ? `Chat error: ${err.message}`
+          : 'Chat error — try help or scan.',
+      );
+    } finally {
+      setChatBusy(false);
+    }
   }
 
   function onSubmit(e: FormEvent) {
@@ -446,12 +487,21 @@ export function DashboardClient() {
             <input
               value={command}
               onChange={(e) => setCommand(e.target.value)}
-              placeholder="Type a command — try help or scan"
-              aria-label="Ross command"
+              placeholder={
+                aiEnabled === false
+                  ? 'AI offline — try help or scan'
+                  : 'Ask Ross — e.g. what is urgent today?'
+              }
+              aria-label="Ross chat"
               autoComplete="off"
+              disabled={chatBusy}
             />
-            <button className="btn btn-primary" type="submit" disabled={!command.trim()}>
-              Send
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={!command.trim() || chatBusy}
+            >
+              {chatBusy ? '…' : 'Send'}
             </button>
           </form>
         </div>

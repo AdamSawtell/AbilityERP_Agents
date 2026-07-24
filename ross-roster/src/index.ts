@@ -10,6 +10,7 @@ import { coverageRouter } from './routes/coverage';
 import { credentialsRouter } from './routes/credentials';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
+import { agentRouter } from './routes/agent';
 import { leaveRouter } from './routes/leave';
 import { pathwaysRouter } from './routes/pathways';
 import { plannerRouter } from './routes/planner';
@@ -55,6 +56,7 @@ async function main(): Promise<void> {
     credentialsRouter,
     skillsRouter,
     leaveRouter,
+    agentRouter,
   );
 
   app.use((_req, res) => {
@@ -96,7 +98,9 @@ async function main(): Promise<void> {
   }
 
   const server = app.listen(env.port, () => {
-    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW047 Phase 6)`);
+    console.log(
+      `[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW048 AI chat${env.openai.apiKey ? '' : ' — OPENAI_API_KEY missing'})`,
+    );
   });
 
   const shutdown = async (signal: string) => {

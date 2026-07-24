@@ -43,6 +43,10 @@ export const env = {
     preShiftConfirmHours: optionalInt('PRE_SHIFT_CONFIRM_HOURS', 14),
     escalationHoursBeforeShift: optionalInt('ESCALATION_HOURS_BEFORE_SHIFT', 4),
   },
+  openai: {
+    apiKey: (process.env.OPENAI_API_KEY ?? '').trim(),
+    model: (process.env.OPENAI_MODEL ?? 'gpt-4o-mini').trim() || 'gpt-4o-mini',
+  },
 };
 
 export const SERVICE_VERSION = '0.1.0';

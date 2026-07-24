@@ -33,7 +33,12 @@ healthRouter.get('/health', async (_req, res) => {
     uptime: uptimeSeconds,
     version: SERVICE_VERSION,
     service: 'ross-roster',
-    ticket: 'SAW047',
+    ticket: 'SAW048',
+    ai: {
+      enabled: Boolean(env.openai.apiKey),
+      provider: 'openai',
+      model: env.openai.model,
+    },
     lastScan,
     lastEmergencySummary: memoryScan,
     config: config
