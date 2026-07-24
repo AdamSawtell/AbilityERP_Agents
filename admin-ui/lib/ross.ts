@@ -203,6 +203,30 @@ export type CoverageHeatmap = {
   };
 };
 
+export type ForecastDay = {
+  date: string;
+  label: string;
+  required: number;
+  assigned: number;
+  vacant: number;
+  fillRate: number;
+};
+
+export type PeriodForecast = {
+  generatedAt: string;
+  period: { start: string; end: string; label: string };
+  comparePeriod: { start: string; end: string; label: string };
+  fillRate: number;
+  compareFillRate: number;
+  delta: number;
+  requiredSlots: number;
+  assignedSlots: number;
+  vacantSlots: number;
+  days: ForecastDay[];
+  thinDays: ForecastDay[];
+  summaryText: string;
+};
+
 export type PlannerBriefing = {
   generatedAt: string;
   period: { start: string; end: string; label: string };

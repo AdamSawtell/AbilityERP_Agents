@@ -69,16 +69,86 @@ export async function writeAudit(input: AuditInput): Promise<number> {
   return rows[0].id;
 }
 
-export async function listAudit(limit = 50, offset = 0) {
+export type AuditListOpts = {
+  limit?: number;
+  offset?: number;
+  agentType?: string;
+  action?: string;
+  since?: string;
+  until?: string;
+};
+
+export async function listAudit(opts: AuditListOpts | number = 50, offsetArg = 0) {
+  // Back-compat: listAudit(limit, offset)
+  const options: AuditListOpts =
+    typeof opts === 'number' ? { limit: opts, offset: offsetArg } : opts;
+
+  const limit = Math.min(options.limit ?? 50, 500);
+  const offset = Math.max(options.offset ?? 0, 0);
+  const params: unknown[] = [];
+  const clauses: string[] = [];
+
+  if (options.agentType) {
+    params.push(options.agentType);
+    clauses.push(`agent_type = $${params.length}`);
+  }
+  if (options.action) {
+    params.push(options.action);
+    clauses.push(`action = $${params.length}`);
+  }
+  if (options.since) {
+    params.push(options.since);
+    clauses.push(`timestamp >= $${params.length}::timestamptz`);
+  }
+  if (options.until) {
+    params.push(options.until);
+    clauses.push(`timestamp <= $${params.length}::timestamptz`);
+  }
+
+  params.push(limit);
+  const limitIdx = params.length;
+  params.push(offset);
+  const offsetIdx = params.length;
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+
   const { rows } = await query(
     `SELECT id, timestamp, agent_type, action, shift_id, worker_id, score,
             rules_passed, rules_failed, approved_by, notes, previous_hash, created
      FROM adempiere.rostering_agent_audit_log
+     ${where}
      ORDER BY id DESC
-     LIMIT $1 OFFSET $2`,
-    [limit, offset],
+     LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+    params,
   );
   return rows;
+}
+
+export function auditRowsToCsv(
+  rows: Array<Record<string, unknown>>,
+): string {
+  const headers = [
+    'id',
+    'timestamp',
+    'agent_type',
+    'action',
+    'shift_id',
+    'worker_id',
+    'score',
+    'approved_by',
+    'notes',
+    'previous_hash',
+  ];
+  const esc = (v: unknown) => {
+    if (v == null) return '';
+    const s = String(v);
+    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const lines = [headers.join(',')];
+  for (const r of rows) {
+    lines.push(headers.map((h) => esc(r[h])).join(','));
+  }
+  return lines.join('\n') + '\n';
 }
 
 export async function getLastScanTimestamps(): Promise<{

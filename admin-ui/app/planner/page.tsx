@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { PlannerBriefing } from '@/lib/ross';
+import type { PeriodForecast, PlannerBriefing } from '@/lib/ross';
 
 export default function PlannerPage() {
   const [briefing, setBriefing] = useState<PlannerBriefing | null>(null);
+  const [forecast, setForecast] = useState<PeriodForecast | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,11 +14,18 @@ export default function PlannerPage() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch('/api/planner');
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed');
-      setBriefing(json.briefing ?? null);
-      setCached(Boolean(json.cached));
+      const [bRes, fRes] = await Promise.all([
+        fetch('/api/planner'),
+        fetch('/api/planner/forecast'),
+      ]);
+      const bJson = await bRes.json();
+      if (!bRes.ok) throw new Error(bJson.error || 'Failed');
+      setBriefing(bJson.briefing ?? null);
+      setCached(Boolean(bJson.cached));
+      if (fRes.ok) {
+        const fJson = await fRes.json();
+        setForecast(fJson.forecast ?? null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed');
     } finally {
@@ -207,6 +215,64 @@ export default function PlannerPage() {
               ))}
             </ul>
           </section>
+
+          {forecast ? (
+            <section className="widget planner-summary">
+              <h3>Next period forecast</h3>
+              <dl className="stat-grid">
+                <div>
+                  <dt>Fill</dt>
+                  <dd>{forecast.fillRate}%</dd>
+                </div>
+                <div>
+                  <dt>vs this period</dt>
+                  <dd>
+                    {forecast.delta >= 0 ? '+' : ''}
+                    {forecast.delta}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Vacant</dt>
+                  <dd>{forecast.vacantSlots}</dd>
+                </div>
+                <div>
+                  <dt>Thin days</dt>
+                  <dd>{forecast.thinDays.length}</dd>
+                </div>
+              </dl>
+              {forecast.days.length > 0 ? (
+                <table className="table" style={{ marginTop: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Fill</th>
+                      <th>Assigned</th>
+                      <th>Vacant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {forecast.days.slice(0, 14).map((d) => (
+                      <tr key={d.date}>
+                        <td>{d.label}</td>
+                        <td className={d.fillRate < 80 ? 'escalation-warning' : undefined}>
+                          {d.fillRate}%
+                        </td>
+                        <td>
+                          {d.assigned}/{d.required}
+                        </td>
+                        <td>{d.vacant}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="widget-foot">No rostered demand in next period yet.</p>
+              )}
+              <p className="widget-foot">
+                {forecast.period.start} → {forecast.period.end}
+              </p>
+            </section>
+          ) : null}
 
           <section className="widget planner-summary">
             <h3>Briefing text</h3>

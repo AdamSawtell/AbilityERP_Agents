@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { errorMessage } from '../db/pool';
+import { buildNextPeriodForecast } from '../services/forecast';
 import { buildPlannerBriefing } from '../services/planner';
 import {
   getLastBriefing,
@@ -20,6 +21,15 @@ plannerRouter.get('/planner/briefing', async (_req, res) => {
     });
   } catch (err) {
     res.status(503).json({ error: 'briefing_failed', message: errorMessage(err) });
+  }
+});
+
+plannerRouter.get('/planner/forecast', async (_req, res) => {
+  try {
+    const forecast = await buildNextPeriodForecast();
+    res.json({ forecast });
+  } catch (err) {
+    res.status(503).json({ error: 'forecast_failed', message: errorMessage(err) });
   }
 });
 

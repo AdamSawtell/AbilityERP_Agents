@@ -6,6 +6,7 @@ import type {
   CoverageHeatmap as CoverageData,
   Gap,
   Horizon,
+  PeriodForecast,
   Proposal,
   VacantShift,
 } from '@/lib/ross';
@@ -62,6 +63,7 @@ export function DashboardClient() {
   const [gaps, setGaps] = useState<Gap[]>([]);
   const [vacant, setVacant] = useState<VacantShift[]>([]);
   const [coverage, setCoverage] = useState<CoverageData | null>(null);
+  const [forecast, setForecast] = useState<PeriodForecast | null>(null);
   const [activity, setActivity] = useState<AuditEntry[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [safeCount, setSafeCount] = useState(0);
@@ -106,9 +108,15 @@ export function DashboardClient() {
           res,
           json: await res.json(),
         })),
+        horizon === 'next'
+          ? fetch('/api/planner/forecast').then(async (res) => ({
+              res,
+              json: await res.json(),
+            }))
+          : Promise.resolve({ res: { ok: false } as Response, json: {} }),
       ]);
 
-      const [p, g, h, a, v, cov] = settled;
+      const [p, g, h, a, v, cov, fc] = settled;
       const errors: string[] = [];
 
       if (p.status === 'fulfilled' && p.value.res.ok) {
@@ -142,6 +150,12 @@ export function DashboardClient() {
 
       if (cov.status === 'fulfilled' && cov.value.res.ok && !cov.value.json.error) {
         setCoverage(cov.value.json as CoverageData);
+      }
+
+      if (horizon === 'next' && fc.status === 'fulfilled' && fc.value.res.ok) {
+        setForecast((fc.value.json as { forecast?: PeriodForecast }).forecast ?? null);
+      } else if (horizon !== 'next') {
+        setForecast(null);
       }
 
       if (errors.length) {
@@ -594,6 +608,41 @@ export function DashboardClient() {
           <h3>Coverage · {horizonLabel}</h3>
           <CoverageHeatmap data={coverage} horizon={horizon} loading={loading} />
         </section>
+
+        {horizon === 'next' && forecast ? (
+          <section className="widget">
+            <h3>Forecast · Next Period</h3>
+            <dl className="stat-grid">
+              <div>
+                <dt>Fill</dt>
+                <dd>{forecast.fillRate}%</dd>
+              </div>
+              <div>
+                <dt>Delta</dt>
+                <dd>
+                  {forecast.delta >= 0 ? '+' : ''}
+                  {forecast.delta}
+                </dd>
+              </div>
+              <div>
+                <dt>Vacant</dt>
+                <dd>{forecast.vacantSlots}</dd>
+              </div>
+              <div>
+                <dt>Thin days</dt>
+                <dd>{forecast.thinDays.length}</dd>
+              </div>
+            </dl>
+            <p className="widget-foot">
+              {forecast.thinDays.length
+                ? forecast.thinDays
+                    .slice(0, 3)
+                    .map((d) => `${d.label} ${d.fillRate}%`)
+                    .join(' · ')
+                : 'No thin days projected'}
+            </p>
+          </section>
+        ) : null}
 
         <section className="widget">
           <h3>Vacant · {horizonLabel}</h3>
