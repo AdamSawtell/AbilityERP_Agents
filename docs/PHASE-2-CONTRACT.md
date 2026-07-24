@@ -1,6 +1,6 @@
 # SAW043 — Ross Phase 2 Contract (Admin UI)
 
-> **Status:** In progress on EC2 `54.206.8.250`  
+> **Status:** Phase 2 exit met on EC2 `54.206.8.250` (`fad6b36`)  
 > **Ticket:** SAW043_ross_admin_ui · [Agents #2](https://github.com/AdamSawtell/AbilityERP_Agents/issues/2)  
 > **Kind:** app  
 > **Canonical product spec:** [ROSS-SCOPE.md](./ROSS-SCOPE.md) §4 (Admin Portal) + §10.2  
