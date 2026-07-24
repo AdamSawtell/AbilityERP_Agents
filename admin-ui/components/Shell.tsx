@@ -11,6 +11,7 @@ const links = [
   { href: '/credentials', label: 'Credentials' },
   { href: '/confirms', label: 'Confirms' },
   { href: '/swaps', label: 'Swaps' },
+  { href: '/skills', label: 'Skills' },
   { href: '/config', label: 'Config' },
   { href: '/audit', label: 'Audit' },
 ];
@@ -47,7 +48,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="brand-sub">Digital Rostering Officer</div>
         <nav className="nav">
           {links.map((link) => {
-            const active = pathname === link.href;
+            const active =
+              pathname === link.href ||
+              (link.href !== '/' && pathname.startsWith(`${link.href}/`));
             const showBadge = link.href === '/' && pending > 0;
             return (
               <Link key={link.href} href={link.href} className={active ? 'active' : ''}>

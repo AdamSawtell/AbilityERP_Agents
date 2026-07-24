@@ -790,6 +790,76 @@ button {
   color: var(--accent);
 }
 
+.skill-status {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.skill-status.on {
+  border-color: rgba(61, 190, 140, 0.55);
+  color: var(--accent);
+  background: rgba(61, 190, 140, 0.1);
+}
+
+.skill-status.paused {
+  border-color: rgba(224, 163, 91, 0.55);
+  color: var(--warn);
+  background: rgba(224, 163, 91, 0.1);
+}
+
+.skill-status.off {
+  border-color: rgba(155, 176, 165, 0.35);
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.skill-status:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.weight-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.weight-row {
+  display: grid;
+  grid-template-columns: 1fr 88px;
+  gap: 12px;
+  align-items: center;
+  font-size: 0.92rem;
+}
+
+.weight-row input {
+  width: 100%;
+  font-family: var(--mono);
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.flash {
+  color: var(--accent);
+}
+
 .feed {
   display: flex;
   flex-direction: column;

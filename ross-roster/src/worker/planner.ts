@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { buildPlannerBriefing, persistDailyPlan, type PlannerBriefing } from '../services/planner';
+import { isSkillAutoEnabled } from '../services/skills';
 
 export type PlannerCycleSummary = {
   startedAt: string;
@@ -66,10 +67,15 @@ export function startPlannerCron(): void {
   if (cronTask) return;
   // 18:30 UTC ≈ 04:00 ACST / 05:00 ACDT — good enough for staging without tz lib
   cronTask = cron.schedule('30 18 * * *', () => {
-    void runPlannerCycle('cron').catch((err) => {
-      if (err instanceof Error && err.message === 'planner_cycle_busy') return;
-      console.error('[ross] planner cron error', err);
-    });
+    void (async () => {
+      try {
+        if (!(await isSkillAutoEnabled('planner_briefing'))) return;
+        await runPlannerCycle('cron');
+      } catch (err) {
+        if (err instanceof Error && err.message === 'planner_cycle_busy') return;
+        console.error('[ross] planner cron error', err);
+      }
+    })();
   });
   console.log('[ross] Planner briefing cron armed (daily ~04:00 Adelaide / 18:30 UTC)');
 }

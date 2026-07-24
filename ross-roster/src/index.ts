@@ -14,6 +14,7 @@ import { pathwaysRouter } from './routes/pathways';
 import { plannerRouter } from './routes/planner';
 import { profilesRouter } from './routes/profiles';
 import { shiftsRouter } from './routes/shifts';
+import { skillsRouter } from './routes/skills';
 import { swapsRouter } from './routes/swaps';
 import { workerRouter } from './routes/worker';
 import { writeAudit } from './services/audit';
@@ -50,6 +51,7 @@ async function main(): Promise<void> {
     coverageRouter,
     plannerRouter,
     credentialsRouter,
+    skillsRouter,
   );
 
   app.use((_req, res) => {
@@ -90,7 +92,7 @@ async function main(): Promise<void> {
   }
 
   const server = app.listen(env.port, () => {
-    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW045 Phase 4)`);
+    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW046 Phase 5)`);
   });
 
   const shutdown = async (signal: string) => {

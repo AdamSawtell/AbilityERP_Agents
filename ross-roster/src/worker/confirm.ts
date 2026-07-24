@@ -4,6 +4,7 @@ import {
   sendConfirmations,
 } from '../services/confirmations';
 import { writeAudit } from '../services/audit';
+import { isSkillAutoEnabled } from '../services/skills';
 
 export type ConfirmCycleSummary = {
   startedAt: string;
@@ -73,10 +74,15 @@ export async function runConfirmCycle(
 export function startConfirmCron(): void {
   if (cronTask) return;
   cronTask = cron.schedule('15 * * * *', () => {
-    void runConfirmCycle('cron').catch((err) => {
-      if (err instanceof Error && err.message === 'confirm_cycle_busy') return;
-      console.error('[ross] confirm cron error', err);
-    });
+    void (async () => {
+      try {
+        if (!(await isSkillAutoEnabled('pre_shift_confirm'))) return;
+        await runConfirmCycle('cron');
+      } catch (err) {
+        if (err instanceof Error && err.message === 'confirm_cycle_busy') return;
+        console.error('[ross] confirm cron error', err);
+      }
+    })();
   });
   console.log('[ross] Pre-shift confirm cron armed (hourly at :15)');
 }

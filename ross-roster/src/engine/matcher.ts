@@ -1,6 +1,7 @@
 import { query } from '../db/pool';
 import { loadShiftContext } from '../db/queries/shifts';
 import { getConfig } from '../services/configStore';
+import { DEFAULT_SOFT_WEIGHTS, getSoftWeights } from '../services/skills';
 import type {
   HardRuleResult,
   MatchBlocker,
@@ -9,6 +10,11 @@ import type {
   SoftRuleResult,
   WorkerRow,
 } from './types';
+
+function scaleEarned(raw: number, defaultMax: number, weight: number): number {
+  if (defaultMax <= 0 || weight <= 0) return 0;
+  return Math.min(weight, Math.round((raw / defaultMax) * weight));
+}
 
 type FailBucket = Record<string, number>;
 
@@ -184,12 +190,16 @@ async function evaluateHardRules(
 async function scoreSoftRules(
   worker: WorkerRow,
   shift: NonNullable<Awaited<ReturnType<typeof loadShiftContext>>>,
+  weights: Record<string, number>,
 ): Promise<{ score: number; softRules: SoftRuleResult[]; breakdown: MatchCandidate['scoreBreakdown'] }> {
   const softRules: SoftRuleResult[] = [];
   const breakdown: MatchCandidate['scoreBreakdown'] = [];
+  const w = (key: keyof typeof DEFAULT_SOFT_WEIGHTS) =>
+    weights[key] ?? DEFAULT_SOFT_WEIGHTS[key];
 
-  // Continuity of care — 25
-  let continuityEarned = 5;
+  // Continuity of care
+  const continuityMax = DEFAULT_SOFT_WEIGHTS.continuity_of_care;
+  let continuityRaw = 5;
   if (shift.receiverIds.length > 0) {
     const { rows } = await query<{ cnt: string }>(
       `SELECT COUNT(*)::text AS cnt
@@ -205,38 +215,50 @@ async function scoreSoftRules(
       [worker.worker_id, shift.receiverIds],
     );
     const cnt = Number(rows[0]?.cnt ?? 0);
-    if (cnt >= 5) continuityEarned = 25;
-    else if (cnt >= 3) continuityEarned = 20;
-    else if (cnt >= 1) continuityEarned = 15;
-    else continuityEarned = 5;
+    if (cnt >= 5) continuityRaw = 25;
+    else if (cnt >= 3) continuityRaw = 20;
+    else if (cnt >= 1) continuityRaw = 15;
+    else continuityRaw = 5;
   }
+  const continuityWeight = w('continuity_of_care');
+  const continuityEarned = scaleEarned(continuityRaw, continuityMax, continuityWeight);
   softRules.push({
     rule: 'continuity_of_care',
-    pass: continuityEarned >= 15,
-    weight: 25,
+    pass: continuityRaw >= 15,
+    weight: continuityWeight,
     earned: continuityEarned,
   });
-  breakdown.push({ category: 'continuity_of_care', weight: 25, earned: continuityEarned });
+  breakdown.push({
+    category: 'continuity_of_care',
+    weight: continuityWeight,
+    earned: continuityEarned,
+  });
 
-  // Location proximity — 20
-  let locationEarned = 5;
+  // Location proximity
+  const locationMax = DEFAULT_SOFT_WEIGHTS.location_proximity;
+  let locationRaw = 5;
   if (shift.locationId != null && worker.contract_location_id != null) {
-    if (worker.contract_location_id === shift.locationId) locationEarned = 20;
-    else locationEarned = 5;
+    if (worker.contract_location_id === shift.locationId) locationRaw = 20;
+    else locationRaw = 5;
   } else if (shift.locationId == null) {
-    locationEarned = 10;
+    locationRaw = 10;
   }
+  const locationWeight = w('location_proximity');
+  const locationEarned = scaleEarned(locationRaw, locationMax, locationWeight);
   softRules.push({
     rule: 'location_proximity',
-    pass: locationEarned >= 10,
-    weight: 20,
+    pass: locationRaw >= 10,
+    weight: locationWeight,
     earned: locationEarned,
   });
-  breakdown.push({ category: 'location_proximity', weight: 20, earned: locationEarned });
+  breakdown.push({
+    category: 'location_proximity',
+    weight: locationWeight,
+    earned: locationEarned,
+  });
 
-  // Availability pattern — 20 (ongoing unavailability day overlap)
-  const dayOfWeek = shift.startTs.getUTCDay(); // 0=Sun — iDempiere often 1=Mon; treat carefully
-  // Prefer Java-style roster day if column is numeric weekday; fall back to calendar check on date range
+  // Availability pattern
+  const dayOfWeek = shift.startTs.getUTCDay();
   const ongoing = await query<{ ok: number }>(
     `SELECT 1 AS ok
      FROM adempiere.aberp_ongoingunavailability ou
@@ -258,41 +280,52 @@ async function scoreSoftRules(
   ).catch(() => ({ rows: [] as { ok: number }[] }));
 
   const blockedByPattern = ongoing.rows.length > 0;
-  const availabilityEarned = blockedByPattern ? 0 : 20;
+  const availabilityMax = DEFAULT_SOFT_WEIGHTS.availability_pattern;
+  const availabilityRaw = blockedByPattern ? 0 : 20;
+  const availabilityWeight = w('availability_pattern');
+  const availabilityEarned = scaleEarned(availabilityRaw, availabilityMax, availabilityWeight);
   softRules.push({
     rule: 'availability_pattern',
     pass: !blockedByPattern,
-    weight: 20,
+    weight: availabilityWeight,
     earned: availabilityEarned,
   });
   breakdown.push({
     category: 'availability_pattern',
-    weight: 20,
+    weight: availabilityWeight,
     earned: availabilityEarned,
   });
   void dayOfWeek;
 
-  // Contract capacity — 15
-  let contractEarned = 15;
+  // Contract capacity
+  const contractMax = DEFAULT_SOFT_WEIGHTS.contract_capacity;
+  let contractRaw = 15;
   const max = worker.max_contract_hrs;
   const used = worker.contract_hrs;
   if (max != null && max > 0 && used != null) {
     const ratio = used / max;
-    if (ratio >= 1) contractEarned = 0;
-    else if (ratio >= 0.9) contractEarned = 5;
-    else if (ratio >= 0.8) contractEarned = 10;
-    else contractEarned = 15;
+    if (ratio >= 1) contractRaw = 0;
+    else if (ratio >= 0.9) contractRaw = 5;
+    else if (ratio >= 0.8) contractRaw = 10;
+    else contractRaw = 15;
   }
+  const contractWeight = w('contract_capacity');
+  const contractEarned = scaleEarned(contractRaw, contractMax, contractWeight);
   softRules.push({
     rule: 'contract_capacity',
-    pass: contractEarned > 0,
-    weight: 15,
+    pass: contractRaw > 0,
+    weight: contractWeight,
     earned: contractEarned,
   });
-  breakdown.push({ category: 'contract_capacity', weight: 15, earned: contractEarned });
+  breakdown.push({
+    category: 'contract_capacity',
+    weight: contractWeight,
+    earned: contractEarned,
+  });
 
-  // Transport match — 10
-  let transportEarned = 10;
+  // Transport match
+  const transportMax = DEFAULT_SOFT_WEIGHTS.transport_match;
+  let transportRaw = 10;
   if (shift.transportRequired) {
     const licence = await query<{ ok: number }>(
       `SELECT 1 AS ok
@@ -313,18 +346,25 @@ async function scoreSoftRules(
        LIMIT 1`,
       [worker.ad_user_id, worker.worker_id, shift.startTs],
     );
-    transportEarned = licence.rows.length > 0 ? 10 : 0;
+    transportRaw = licence.rows.length > 0 ? 10 : 0;
   }
+  const transportWeight = w('transport_match');
+  const transportEarned = scaleEarned(transportRaw, transportMax, transportWeight);
   softRules.push({
     rule: 'transport_match',
-    pass: transportEarned > 0 || !shift.transportRequired,
-    weight: 10,
+    pass: transportRaw > 0 || !shift.transportRequired,
+    weight: transportWeight,
     earned: transportEarned,
   });
-  breakdown.push({ category: 'transport_match', weight: 10, earned: transportEarned });
+  breakdown.push({
+    category: 'transport_match',
+    weight: transportWeight,
+    earned: transportEarned,
+  });
 
-  // Response history — 10
-  let responseEarned = 5;
+  // Response history
+  const responseMax = DEFAULT_SOFT_WEIGHTS.response_history;
+  let responseRaw = 5;
   const hist = await query<{ resp: string | null }>(
     `SELECT aberp_rosteredresponse AS resp
      FROM adempiere.aberp_rosteredresponselog
@@ -337,19 +377,28 @@ async function scoreSoftRules(
   ).catch(() => ({ rows: [] as { resp: string | null }[] }));
 
   const resp = hist.rows[0]?.resp;
-  if (resp === 'REQ' || resp === 'ACC') responseEarned = 10;
-  else if (resp === 'DEC') responseEarned = 0;
-  else responseEarned = 5;
+  if (resp === 'REQ' || resp === 'ACC') responseRaw = 10;
+  else if (resp === 'DEC') responseRaw = 0;
+  else responseRaw = 5;
 
+  const responseWeight = w('response_history');
+  const responseEarned = scaleEarned(responseRaw, responseMax, responseWeight);
   softRules.push({
     rule: 'response_history',
-    pass: responseEarned > 0,
-    weight: 10,
+    pass: responseRaw > 0,
+    weight: responseWeight,
     earned: responseEarned,
   });
-  breakdown.push({ category: 'response_history', weight: 10, earned: responseEarned });
+  breakdown.push({
+    category: 'response_history',
+    weight: responseWeight,
+    earned: responseEarned,
+  });
 
-  const score = softRules.reduce((sum, r) => sum + r.earned, 0);
+  const score = Math.min(
+    100,
+    softRules.reduce((sum, r) => sum + r.earned, 0),
+  );
   return { score, softRules, breakdown };
 }
 
@@ -402,6 +451,7 @@ export async function matchShift(shiftId: number): Promise<MatchResult> {
   }
 
   const config = await getConfig();
+  const softWeights = await getSoftWeights();
   const workers = await loadCandidateWorkers(shiftId);
   const fails: FailBucket = {};
   const candidates: MatchCandidate[] = [];
@@ -414,7 +464,7 @@ export async function matchShift(shiftId: number): Promise<MatchResult> {
       continue;
     }
 
-    const soft = await scoreSoftRules(worker, shift);
+    const soft = await scoreSoftRules(worker, shift, softWeights);
     const partial = {
       workerId: worker.worker_id,
       workerName: worker.worker_name,

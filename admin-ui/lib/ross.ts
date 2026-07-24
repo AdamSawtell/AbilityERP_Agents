@@ -288,3 +288,20 @@ export type PlannerBriefing = {
   recommendations: string[];
   summaryText: string;
 };
+
+export type SkillStatus = 'on' | 'paused' | 'off';
+
+export type Skill = {
+  skill_key: string;
+  name: string;
+  purpose: string;
+  status: SkillStatus;
+  trigger_label: string;
+  depends_on: string[];
+  sort_order: number;
+  config_json: Record<string, unknown>;
+  updated_by: string | null;
+  updated_at: string | null;
+  last_run_at: string | null;
+  last_run_action: string | null;
+};

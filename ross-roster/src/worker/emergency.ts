@@ -6,6 +6,7 @@ import { writeAudit } from '../services/audit';
 import { getConfig } from '../services/configStore';
 import { logGapFromMatch } from '../services/gapWriter';
 import { expireStaleProposals, upsertProposalsForShift } from '../services/proposals';
+import { isSkillAutoEnabled, isSkillChainEnabled } from '../services/skills';
 
 export type ScanSummary = {
   startedAt: string;
@@ -53,18 +54,43 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
     summary.autoAssignEnabled = config.auto_assign_enabled;
     summary.expiredProposals = await expireStaleProposals(2);
 
+    const matchingOn = await isSkillChainEnabled('worker_matching');
+    const gapsOn = await isSkillChainEnabled('gap_detector');
+    const pathwaysOk = await isSkillChainEnabled('pathways_message');
+
     const start = new Date();
     const end = new Date(start.getTime() + 48 * 3_600_000);
     const vacant = await listVacantShifts({ start, end, limit: 100 });
     summary.vacantCount = vacant.length;
+
+    if (!matchingOn) {
+      summary.finishedAt = new Date().toISOString();
+      lastSummary = summary;
+      await writeAudit({
+        agentType: 'emergency',
+        action: 'scan_run',
+        notes: JSON.stringify({
+          trigger,
+          vacantCount: summary.vacantCount,
+          skipped: 'worker_matching_off_or_paused',
+          expiredProposals: summary.expiredProposals,
+        }),
+      });
+      console.log(
+        `[ross] emergency scan (${trigger}): vacant=${summary.vacantCount} — worker_matching not auto-enabled`,
+      );
+      return summary;
+    }
 
     for (const row of vacant) {
       const shiftId = Number(row.id);
       try {
         const match = await matchShift(shiftId);
         if (match.candidates.length === 0) {
-          const gapId = await logGapFromMatch(match);
-          if (gapId != null) summary.gapsLogged += 1;
+          if (gapsOn) {
+            const gapId = await logGapFromMatch(match);
+            if (gapId != null) summary.gapsLogged += 1;
+          }
           continue;
         }
 
@@ -81,7 +107,7 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
             workerId: best.workerId,
             approvedBy: 'Ross Auto-pilot',
             notes: `Auto-assigned (score ${best.score} ≥ ${config.auto_approve_threshold})`,
-            notifyWorker: true,
+            notifyWorker: pathwaysOk,
           });
           await writeAudit({
             agentType: 'emergency',
@@ -168,6 +194,7 @@ export function startEmergencyCron(): void {
   cronTask = cron.schedule('* * * * *', () => {
     void (async () => {
       try {
+        if (!(await isSkillAutoEnabled('shift_scanner'))) return;
         const config = await getConfig();
         const intervalMs = Math.max(1, config.scan_interval_minutes) * 60_000;
         if (lastSummary) {

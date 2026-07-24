@@ -4,6 +4,7 @@ import {
   scanSwapIntents,
 } from '../services/swaps';
 import { writeAudit } from '../services/audit';
+import { isSkillAutoEnabled } from '../services/skills';
 
 export type SwapCycleSummary = {
   startedAt: string;
@@ -65,10 +66,15 @@ export async function runSwapCycle(
 export function startSwapCron(): void {
   if (cronTask) return;
   cronTask = cron.schedule('45 */2 * * *', () => {
-    void runSwapCycle('cron').catch((err) => {
-      if (err instanceof Error && err.message === 'swap_cycle_busy') return;
-      console.error('[ross] swap cron error', err);
-    });
+    void (async () => {
+      try {
+        if (!(await isSkillAutoEnabled('swap_handler'))) return;
+        await runSwapCycle('cron');
+      } catch (err) {
+        if (err instanceof Error && err.message === 'swap_cycle_busy') return;
+        console.error('[ross] swap cron error', err);
+      }
+    })();
   });
   console.log('[ross] Swap detect cron armed (every 2h at :45)');
 }
