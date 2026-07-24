@@ -24,7 +24,7 @@
 | ID | Scope item | Phase 4 contract | Status |
 |---|---|---|---|
 | **4a** | Workforce Planner reports | Daily briefing API + cron + Planner admin page | **done** (`e581294`) |
-| **4b** | Training gaps + Request Training | Gaps page actions / Pathways | **done** (this slice) |
+| **4b** | Training gaps + Request Training | Gaps page actions / Pathways | **done** (`d74c38e`) |
 
 **Phase 4b exit:**
 
