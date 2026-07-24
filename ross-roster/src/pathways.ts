@@ -334,3 +334,35 @@ export async function resolveWorkerUserId(workerBPartnerId: number): Promise<num
   );
   return rows[0] ? Number(rows[0].ad_user_id) : null;
 }
+
+/** Notify the Rostering Officer via their own Pathways chat (admin-facing). */
+export async function notifyRosterOfficer(opts: {
+  message: string;
+  shiftId: number;
+  adClientId?: number;
+}): Promise<PathwaysSendResult> {
+  const officerId = await withClient((client) => resolveOfficerUserId(client));
+  const { rows } = await query<{ c_bpartner_id: number | null; ad_client_id: number }>(
+    `SELECT c_bpartner_id, ad_client_id FROM adempiere.ad_user WHERE ad_user_id = $1`,
+    [officerId],
+  );
+  const bpId = rows[0]?.c_bpartner_id;
+  if (bpId == null) {
+    return {
+      sent: false,
+      requestId: null,
+      responseLogId: null,
+      createdChat: false,
+      message: 'officer_has_no_bpartner',
+    };
+  }
+  return sendPathwaysMessage({
+    workerAdUserId: officerId,
+    workerBPartnerId: Number(bpId),
+    shiftId: opts.shiftId,
+    message: opts.message,
+    adClientId:
+      opts.adClientId ??
+      (rows[0]?.ad_client_id != null ? Number(rows[0].ad_client_id) : 1000000),
+  });
+}

@@ -308,6 +308,26 @@ button {
   }
 }
 
+.gap-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.gap-card h3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.gap-card .reason {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

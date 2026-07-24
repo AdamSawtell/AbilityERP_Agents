@@ -24,7 +24,15 @@
 | ID | Scope item | Phase 4 contract | Status |
 |---|---|---|---|
 | **4a** | Workforce Planner reports | Daily briefing API + cron + Planner admin page | **done** (`e581294`) |
-| **4b** | Training gaps + Request Training | Gaps page actions / Pathways | later |
+| **4b** | Training gaps + Request Training | Gaps page actions / Pathways | **done** (this slice) |
+
+**Phase 4b exit:**
+
+1. `GET /gaps/training-summary` aggregates open gaps by credential/reason  
+2. `POST /gaps/:id/training-request` marks gap(s), Pathways notifies officer, audit `training_requested`  
+3. `POST /gaps/:id/resolve` closes a gap  
+4. Admin Gaps: Unresolved/Resolved, training cards + Request/Resolve  
+5. Verified on EC2 **without Entra**
 | **4c** | Credential watch + bulk remind | Expiry radar + Pathways remind | later |
 | **4d** | Next Period forecast | Forecast on Next horizon / Planner | later |
 | **4e** | Audit log + export | Filter + CSV export | later |

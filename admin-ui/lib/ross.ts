@@ -38,13 +38,29 @@ export type Proposal = {
 
 export type Gap = {
   id: number;
-  shift_id: number;
+  shift_id: number | null;
   shift_name: string | null;
   reason: string;
+  credential_id?: number | null;
+  credential_name?: string | null;
   escalation_level: string;
   detected_at: string;
   resolved: boolean;
+  training_requested?: boolean;
   blocked_count: number | null;
+  resolution_notes?: string | null;
+};
+
+export type TrainingGapSummary = {
+  credentialId: number | null;
+  credentialName: string;
+  reason: string;
+  blockedShifts: number;
+  openGaps: number;
+  trainingRequested: number;
+  highestEscalation: string;
+  sampleGapIds: number[];
+  shiftNames: string[];
 };
 
 export type AuditEntry = {
