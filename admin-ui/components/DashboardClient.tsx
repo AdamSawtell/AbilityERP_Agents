@@ -109,8 +109,7 @@ export function DashboardClient() {
         <div>
           <h1>Today</h1>
           <p>
-            {pendingCount} proposal{pendingCount === 1 ? '' : 's'} waiting — Ross proposes, you
-            confirm.
+            {`${pendingCount} proposal${pendingCount === 1 ? '' : 's'} waiting — Ross proposes, you confirm.`}
           </p>
         </div>
         <div className="actions">
