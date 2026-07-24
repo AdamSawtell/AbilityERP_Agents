@@ -173,7 +173,7 @@ async function writeResponseLog(
      ) VALUES (
         $1, $2, 0, 'Y',
         NOW(), $3, NOW(), $3,
-        gen_random_uuid()::varchar,
+        uuid_generate_v4()::varchar,
         $4, 'MSG', $5,
         'N', 'Y', NULL
      )`,

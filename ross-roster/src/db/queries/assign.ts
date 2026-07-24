@@ -133,7 +133,7 @@ export async function assignWorker(input: AssignInput): Promise<AssignResult> {
               aberp_clockout
            ) VALUES (
               $1, $2, $3, 'Y', NOW(), 100, NOW(), 100,
-              gen_random_uuid()::varchar, $4, $5, $6, $7, 'N', 'N',
+              uuid_generate_v4()::varchar, $4, $5, $6, $7, 'N', 'N',
               0, 0, 0, 'N', 'N'
            )`,
           [
