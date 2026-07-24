@@ -100,6 +100,7 @@ shiftsRouter.post('/assign', async (req, res) => {
       isOverride: Boolean(req.body?.isOverride),
       overrideReason:
         typeof req.body?.overrideReason === 'string' ? req.body.overrideReason : null,
+      notifyWorker: req.body?.notifyWorker !== false,
     });
 
     res.json(result);

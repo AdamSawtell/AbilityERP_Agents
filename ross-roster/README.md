@@ -18,6 +18,11 @@ Build authority: [`docs/PHASE-1-CONTRACT.md`](../docs/PHASE-1-CONTRACT.md).
 - `POST /api/v1/worker/run`, `GET /api/v1/proposals/pending`
 - Proposals + gap logging on zero-match (no auto-assign in Phase 1)
 
+### Phase 1d
+- Pathways writer via Rostering Chat (`r_request.lastresult` + sync trigger) + `aberp_rosteredresponselog` MSG
+- `POST /api/v1/assign` notifies worker by default (`notifyWorker: false` to skip)
+- `POST /api/v1/pathways/send` for manual smoke sends
+
 **Deploy target:** AbilityERP EC2 `54.206.8.250` only (`/opt/ross-roster`, PM2 `ross-roster`).
 
 ## Local

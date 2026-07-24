@@ -6,6 +6,7 @@ import { apiKeyAuth } from './middleware/auth';
 import { auditRouter } from './routes/audit';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
+import { pathwaysRouter } from './routes/pathways';
 import { shiftsRouter } from './routes/shifts';
 import { workerRouter } from './routes/worker';
 import { writeAudit } from './services/audit';
@@ -24,7 +25,15 @@ async function main(): Promise<void> {
   // Health is public so nginx / ops can probe without a key.
   app.use(healthRouter);
 
-  app.use('/api/v1', apiKeyAuth, shiftsRouter, workerRouter, auditRouter, gapsRouter);
+  app.use(
+    '/api/v1',
+    apiKeyAuth,
+    shiftsRouter,
+    workerRouter,
+    pathwaysRouter,
+    auditRouter,
+    gapsRouter,
+  );
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'not_found' });
@@ -61,7 +70,7 @@ async function main(): Promise<void> {
   }
 
   const server = app.listen(env.port, () => {
-    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW042 Phase 1c)`);
+    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW042 Phase 1d)`);
   });
 
   const shutdown = async (signal: string) => {
