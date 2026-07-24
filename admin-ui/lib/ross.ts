@@ -63,6 +63,33 @@ export type TrainingGapSummary = {
   shiftNames: string[];
 };
 
+export type ExpiringCredential = {
+  assignmentId: number;
+  workerId: number;
+  workerName: string;
+  credentialId: number;
+  credentialName: string;
+  expiryDate: string;
+  daysLeft: number;
+  window: '7' | '14' | '30';
+};
+
+export type CredentialWatchGroup = {
+  credentialId: number;
+  credentialName: string;
+  within7Days: number;
+  within14Days: number;
+  within30Days: number;
+  workers: ExpiringCredential[];
+};
+
+export type CredentialWatch = {
+  withinDays: number;
+  totals: { within7Days: number; within14Days: number; within30Days: number };
+  groups: CredentialWatchGroup[];
+  items: ExpiringCredential[];
+};
+
 export type AuditEntry = {
   id: number;
   timestamp: string;

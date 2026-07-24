@@ -7,6 +7,7 @@ import { auditRouter } from './routes/audit';
 import { configRouter } from './routes/config';
 import { confirmationsRouter } from './routes/confirmations';
 import { coverageRouter } from './routes/coverage';
+import { credentialsRouter } from './routes/credentials';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
 import { pathwaysRouter } from './routes/pathways';
@@ -48,6 +49,7 @@ async function main(): Promise<void> {
     swapsRouter,
     coverageRouter,
     plannerRouter,
+    credentialsRouter,
   );
 
   app.use((_req, res) => {

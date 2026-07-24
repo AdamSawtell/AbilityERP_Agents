@@ -33,7 +33,14 @@
 3. `POST /gaps/:id/resolve` closes a gap  
 4. Admin Gaps: Unresolved/Resolved, training cards + Request/Resolve  
 5. Verified on EC2 **without Entra**
-| **4c** | Credential watch + bulk remind | Expiry radar + Pathways remind | later |
+| **4c** | Credential watch + bulk remind | Expiry radar + Pathways remind | **done** (this slice) |
+
+**Phase 4c exit:**
+
+1. `GET /credentials/expiring` returns 7/14/30d radar + groups  
+2. `POST /credentials/bulk-remind` sends Pathways reminders (audit `cred_remind`)  
+3. Admin **Credentials** page: radar cards + Bulk remind  
+4. Verified on EC2 **without Entra**
 | **4d** | Next Period forecast | Forecast on Next horizon / Planner | later |
 | **4e** | Audit log + export | Filter + CSV export | later |
 
