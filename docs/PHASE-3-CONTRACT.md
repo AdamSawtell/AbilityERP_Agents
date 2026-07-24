@@ -29,12 +29,12 @@
 | **3b** | Pre-shift confirmation + worker chat | Pathways confirm + REQ/DEC poll + escalate/vacate + Confirms admin | **done** (`11cc4e5`) |
 | **3c** | Swap management | Detect / propose / execute swaps + Swaps admin | **done** (`0fdfb0d`) |
 | **3d** | Record panel | Slide-in shift + worker detail | **done** (`af393e3`) |
-| **3e** | Coverage heatmap | Sidebar heatmap | **done** (this slice) |
+| **3e** | Coverage heatmap | Sidebar heatmap | **done** (`ee2a987`+) |
 
 **Phase 3e exit:**
 
 1. `GET /api/v1/coverage?horizon=` returns day × AM/PM/Eve fill cells  
-2. Dashboard rail shows Coverage heatmap (colour by fill / vacant)  
+2. Dashboard rail shows Coverage heatmap (admin BFF `/api/heatmap`)  
 3. Horizon tabs refresh coverage with vacant list  
 4. Verified on EC2 **without Entra**
 

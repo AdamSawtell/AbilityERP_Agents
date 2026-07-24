@@ -102,7 +102,7 @@ export function DashboardClient() {
           res,
           json: await res.json(),
         })),
-        fetch(`/api/coverage?horizon=${horizon}`).then(async (res) => ({
+        fetch(`/api/heatmap?horizon=${horizon}`).then(async (res) => ({
           res,
           json: await res.json(),
         })),
