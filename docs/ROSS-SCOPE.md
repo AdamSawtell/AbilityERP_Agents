@@ -1456,6 +1456,9 @@ On each tick:
 
 ### 10.4 Phase 4: Planner & Reports (Week 7-8)
 
+> **Build contract (wins on conflicts):** [PHASE-4-CONTRACT.md](./PHASE-4-CONTRACT.md) · ticket **SAW045**  
+> **Auth:** Entra/JWT deferred — test on private EC2 without SSO.
+
 | 4a | Workforce Planner reports in This Period tab | ~500 | Daily briefing, fill rates, gap aggregation |
 |---|---|---|---|
 | 4b | Training gaps tab + Request Training button | ~300 | Gaps visible, training requests trigger Pathways |

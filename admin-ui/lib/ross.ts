@@ -159,3 +159,65 @@ export type CoverageHeatmap = {
     fillRate: number;
   };
 };
+
+export type PlannerBriefing = {
+  generatedAt: string;
+  period: { start: string; end: string; label: string };
+  priorPeriod: { start: string; end: string; label: string };
+  fillRate: {
+    thisPeriod: number;
+    lastPeriod: number;
+    delta: number;
+    vacantSlots: number;
+    requiredSlots: number;
+    assignedSlots: number;
+    urgentVacant: number;
+  };
+  trainingGaps: {
+    credentialId: number | null;
+    credentialName: string;
+    blockedShifts: number;
+    openGaps: number;
+    trainingRequested: number;
+  }[];
+  credentialExpiry: {
+    within7Days: number;
+    within14Days: number;
+    within30Days: number;
+    workers: {
+      workerId: number;
+      workerName: string;
+      credentialName: string;
+      expiryDate: string;
+    }[];
+  };
+  hiringSignals: {
+    dayOfWeek: string;
+    band: string;
+    vacantSlots: number;
+    sampleDays: number;
+    detail: string;
+  }[];
+  utilisation: {
+    busiest: {
+      workerId: number;
+      workerName: string;
+      assignedShifts: number;
+      hoursApprox: number;
+    }[];
+    lightest: {
+      workerId: number;
+      workerName: string;
+      assignedShifts: number;
+      hoursApprox: number;
+    }[];
+  };
+  forecastNext: {
+    period: { start: string; end: string };
+    fillRate: number;
+    vacantSlots: number;
+    requiredSlots: number;
+  };
+  recommendations: string[];
+  summaryText: string;
+};
