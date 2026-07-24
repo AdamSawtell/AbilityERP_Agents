@@ -5,6 +5,7 @@ import type { Gap } from '@/lib/ross';
 
 export default function GapsPage() {
   const [gaps, setGaps] = useState<Gap[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,6 +17,8 @@ export default function GapsPage() {
         setGaps(json.gaps ?? []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed');
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -29,7 +32,9 @@ export default function GapsPage() {
         </div>
       </div>
       {error ? <p style={{ color: 'var(--danger)' }}>{error}</p> : null}
-      {gaps.length === 0 ? (
+      {loading ? (
+        <div className="empty">Loading gaps…</div>
+      ) : gaps.length === 0 ? (
         <div className="empty">No unresolved gaps.</div>
       ) : (
         <table className="table">
