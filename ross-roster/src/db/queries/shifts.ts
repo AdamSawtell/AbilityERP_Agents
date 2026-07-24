@@ -62,10 +62,7 @@ export async function listVacantShifts(opts: {
        AND COALESCE(s.aberp_isshiftrosteredtemplate, 'N') = 'N'
        AND COALESCE(s.starttime, s.startdate) >= $1::timestamp
        AND COALESCE(s.starttime, s.startdate) <= $2::timestamp
-       AND (
-         s.aberp_no_of_staff IS NULL
-         OR COALESCE(staff_counts.cnt, 0) < s.aberp_no_of_staff
-       )
+       AND COALESCE(staff_counts.cnt, 0) < COALESCE(s.aberp_no_of_staff, 1)
      ORDER BY COALESCE(s.starttime, s.startdate) ASC
      LIMIT $3`,
     [opts.start, opts.end, opts.limit],
