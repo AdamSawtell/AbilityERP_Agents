@@ -297,6 +297,31 @@ export async function buildConfirmReminderMessage(opts: {
   );
 }
 
+/** Phase 3c — propose a two-shift exchange to one party. */
+export async function buildSwapProposeMessage(opts: {
+  toName: string;
+  otherName: string;
+  giveShiftName: string;
+  giveStart: Date;
+  takeShiftName: string;
+  takeStart: Date;
+  perspective: 'requester' | 'partner';
+}): Promise<string> {
+  const first = opts.toName.split(' ')[0] || opts.toName;
+  const otherFirst = opts.otherName.split(' ')[0] || opts.otherName;
+  const lead =
+    opts.perspective === 'requester'
+      ? `${otherFirst} can take your ${opts.giveShiftName} (${fmtAu(opts.giveStart)})`
+      : `${otherFirst} wants to swap — you'd take ${opts.takeShiftName} (${fmtAu(opts.takeStart)})`;
+
+  return (
+    `Hi ${first} — swap proposal\n` +
+    `${lead}\n` +
+    `and you'd take ${opts.takeShiftName} (${fmtAu(opts.takeStart)}).\n\n` +
+    `Ask your Rostering Officer to approve, or reply in chat if you can't.`
+  );
+}
+
 /** Resolve worker AD_User for a C_BPartner staff id. */
 export async function resolveWorkerUserId(workerBPartnerId: number): Promise<number | null> {
   const { rows } = await query<{ ad_user_id: number }>(

@@ -105,3 +105,31 @@ export type ConfirmCycleSummary = {
   escalated: number;
   errors: string[];
 };
+
+export type Swap = {
+  id: number;
+  requesterId: number;
+  requesterName: string | null;
+  partnerId: number;
+  partnerName: string | null;
+  shiftAId: number;
+  shiftAName: string | null;
+  shiftBId: number;
+  shiftBName: string | null;
+  requesterResponse: string;
+  partnerResponse: string;
+  status: string;
+  score: number | null;
+  source: string | null;
+  notes: string | null;
+  proposedAt: string;
+};
+
+export type SwapCycleSummary = {
+  startedAt: string;
+  finishedAt: string;
+  intentsSeen: number;
+  proposed: number;
+  considered: number;
+  errors: string[];
+};

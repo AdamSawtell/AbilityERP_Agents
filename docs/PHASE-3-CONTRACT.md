@@ -27,9 +27,17 @@
 |---|---|---|---|
 | **3a** | Auto-pilot threshold + bulk approve + summary | Config toggle + scan auto-write + bulk Approve + dashboard summary | **done** (`f4c1a9c`) |
 | **3b** | Pre-shift confirmation + worker chat | Pathways confirm + REQ/DEC poll + escalate/vacate + Confirms admin | **done** (`11cc4e5`) |
-| **3c** | Swap management | Detect / propose / execute swaps | later |
+| **3c** | Swap management | Detect / propose / execute swaps + Swaps admin | **done** (this slice) |
 | **3d** | Record panel | Slide-in shift + worker detail | **done** (`af393e3`) |
 | **3e** | Coverage heatmap | Sidebar heatmap | later |
+
+**Phase 3c exit:**
+
+1. `POST /api/v1/swaps/run` detects cross-day assignment pairs (clash/leave-safe) + scans Pathways “swap” intents  
+2. Propose writes `rostering_agent_swaps`, Pathways both workers, audit `swap_proposed`  
+3. Admin approve (or dual respond accept) rewrites both staff lines, audit `swap_approved`, notifies both  
+4. Admin **Swaps** page: Run detect + Approve/Reject  
+5. Verified on EC2 **without Entra**
 
 **Phase 3b exit:**
 

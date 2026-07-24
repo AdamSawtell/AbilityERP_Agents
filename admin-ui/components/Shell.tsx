@@ -8,6 +8,7 @@ const links = [
   { href: '/', label: 'Dashboard' },
   { href: '/gaps', label: 'Gaps' },
   { href: '/confirms', label: 'Confirms' },
+  { href: '/swaps', label: 'Swaps' },
   { href: '/config', label: 'Config' },
   { href: '/audit', label: 'Audit' },
 ];

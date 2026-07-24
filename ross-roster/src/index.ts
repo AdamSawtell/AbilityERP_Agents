@@ -11,10 +11,12 @@ import { healthRouter } from './routes/health';
 import { pathwaysRouter } from './routes/pathways';
 import { profilesRouter } from './routes/profiles';
 import { shiftsRouter } from './routes/shifts';
+import { swapsRouter } from './routes/swaps';
 import { workerRouter } from './routes/worker';
 import { writeAudit } from './services/audit';
 import { startConfirmCron, stopConfirmCron } from './worker/confirm';
 import { startEmergencyCron, stopEmergencyCron } from './worker/emergency';
+import { startSwapCron, stopSwapCron } from './worker/swap';
 
 async function main(): Promise<void> {
   const app = express();
@@ -40,6 +42,7 @@ async function main(): Promise<void> {
     configRouter,
     profilesRouter,
     confirmationsRouter,
+    swapsRouter,
   );
 
   app.use((_req, res) => {
@@ -75,6 +78,7 @@ async function main(): Promise<void> {
     }
     startEmergencyCron();
     startConfirmCron();
+    startSwapCron();
   }
 
   const server = app.listen(env.port, () => {
@@ -85,6 +89,7 @@ async function main(): Promise<void> {
     console.log(`[ross] ${signal} — shutting down`);
     stopEmergencyCron();
     stopConfirmCron();
+    stopSwapCron();
     server.close();
     await pool.end();
     process.exit(0);
