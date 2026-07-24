@@ -1,6 +1,6 @@
 # SAW042 — Ross Phase 1 Contract (Frozen)
 
-> **Status:** Frozen for build  
+> **Status:** Phase 1 complete on EC2 `54.206.8.250` (1a–1d)  
 > **Ticket:** SAW042_ross_roster_phase1  
 > **Kind:** app  
 > **Canonical product spec:** [ROSS-SCOPE.md](./ROSS-SCOPE.md)  
