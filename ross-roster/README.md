@@ -4,14 +4,14 @@ Express/TypeScript service for **Ross the Roster Agent** on port **3002**.
 
 Build authority: [`docs/PHASE-1-CONTRACT.md`](../docs/PHASE-1-CONTRACT.md).
 
-## Phase 1a (this commit)
+## Status (SAW042)
 
-- Express skeleton + API key auth
-- PG pool
-- Migrations for config / audit / gaps / proposals
-- `GET /health`
-- `GET /api/v1/audit`, `GET /api/v1/gaps` (+ training-request stub write)
-- 501 stubs for 1b/1c routes
+### Phase 1a
+- Express skeleton + API key auth, PG pool, migrations, `GET /health`, audit/gaps
+
+### Phase 1b
+- Vacant shifts + matching engine (hard/soft rules aligned with SAW003 leave/needs)
+- `POST /api/v1/assign` (staff line fill/insert + audit; Pathways in 1d)
 
 ## Local
 
