@@ -26,10 +26,18 @@
 | ID | Scope item | Phase 3 contract | Status |
 |---|---|---|---|
 | **3a** | Auto-pilot threshold + bulk approve + summary | Config toggle + scan auto-write + bulk Approve + dashboard summary | **done** (`f4c1a9c`) |
-| **3b** | Pre-shift confirmation + worker chat | Pathways confirm requests + response handling | later in SAW044 |
+| **3b** | Pre-shift confirmation + worker chat | Pathways confirm + REQ/DEC poll + escalate/vacate + Confirms admin | **done** (this slice) |
 | **3c** | Swap management | Detect / propose / execute swaps | later |
-| **3d** | Record panel | Slide-in shift + worker detail | **done** (f393e3) |
+| **3d** | Record panel | Slide-in shift + worker detail | **done** (`af393e3`) |
 | **3e** | Coverage heatmap | Sidebar heatmap | later |
+
+**Phase 3b exit:**
+
+1. Hourly cron + `POST /api/v1/confirmations/run` send Pathways reminders within `pre_shift_confirm_hours`
+2. Poll `aberp_rosteredresponselog` REQ → confirm / DEC → vacate staff line + audit
+3. Escalate when still pending within `escalation_hours_before_shift`
+4. Admin **Confirms** page: run cycle + manual confirm/decline (no-Entra smoke)
+5. Verified on EC2 **without Entra**
 
 **Phase 3a exit (this slice):**
 

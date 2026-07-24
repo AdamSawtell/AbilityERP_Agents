@@ -5,6 +5,7 @@ import { pool, testConnection } from './db/pool';
 import { apiKeyAuth } from './middleware/auth';
 import { auditRouter } from './routes/audit';
 import { configRouter } from './routes/config';
+import { confirmationsRouter } from './routes/confirmations';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
 import { pathwaysRouter } from './routes/pathways';
@@ -12,6 +13,7 @@ import { profilesRouter } from './routes/profiles';
 import { shiftsRouter } from './routes/shifts';
 import { workerRouter } from './routes/worker';
 import { writeAudit } from './services/audit';
+import { startConfirmCron, stopConfirmCron } from './worker/confirm';
 import { startEmergencyCron, stopEmergencyCron } from './worker/emergency';
 
 async function main(): Promise<void> {
@@ -37,6 +39,7 @@ async function main(): Promise<void> {
     gapsRouter,
     configRouter,
     profilesRouter,
+    confirmationsRouter,
   );
 
   app.use((_req, res) => {
@@ -71,15 +74,17 @@ async function main(): Promise<void> {
       console.warn('[ross] could not write startup audit (migrate first?)', err);
     }
     startEmergencyCron();
+    startConfirmCron();
   }
 
   const server = app.listen(env.port, () => {
-    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW042 Phase 1d)`);
+    console.log(`[ross] ross-roster ${SERVICE_VERSION} on :${env.port} (SAW044 Phase 3)`);
   });
 
   const shutdown = async (signal: string) => {
     console.log(`[ross] ${signal} — shutting down`);
     stopEmergencyCron();
+    stopConfirmCron();
     server.close();
     await pool.end();
     process.exit(0);

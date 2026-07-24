@@ -80,3 +80,28 @@ export type VacantShift = {
 };
 
 export type Horizon = 'today' | 'period' | 'next';
+
+export type Confirmation = {
+  id: number;
+  shiftId: number;
+  shiftName: string | null;
+  workerId: number;
+  workerName: string | null;
+  staffLineId: number | null;
+  status: string;
+  requestedAt: string;
+  respondedAt: string | null;
+  escalatedAt: string | null;
+  shiftStart: string | null;
+  notes: string | null;
+};
+
+export type ConfirmCycleSummary = {
+  startedAt: string;
+  finishedAt: string;
+  sent: number;
+  confirmed: number;
+  declined: number;
+  escalated: number;
+  errors: string[];
+};

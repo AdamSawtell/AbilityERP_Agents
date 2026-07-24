@@ -249,6 +249,18 @@ export async function sendPathwaysMessage(input: PathwaysSendInput): Promise<Pat
   });
 }
 
+function fmtAu(d: Date): string {
+  return d.toLocaleString('en-AU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Australia/Adelaide',
+  });
+}
+
 export async function buildAssignmentMessage(opts: {
   workerName: string;
   shiftName: string;
@@ -256,24 +268,32 @@ export async function buildAssignmentMessage(opts: {
   endTs: Date;
   locationName: string | null;
 }): Promise<string> {
-  const fmt = (d: Date) =>
-    d.toLocaleString('en-AU', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: 'Australia/Adelaide',
-    });
-
   const firstName = opts.workerName.split(' ')[0] || opts.workerName;
   const loc = opts.locationName ? `\n📍 ${opts.locationName}` : '';
 
   return (
     `${firstName}, you've been rostered for ${opts.shiftName}\n` +
-    `${fmt(opts.startTs)} — ${fmt(opts.endTs)}${loc}\n\n` +
+    `${fmtAu(opts.startTs)} — ${fmtAu(opts.endTs)}${loc}\n\n` +
     `Reply here if you can't make it.`
+  );
+}
+
+/** Pre-shift check-in (Phase 3b). Workers reply via Pathways; Ross polls REQ/DEC. */
+export async function buildConfirmReminderMessage(opts: {
+  workerName: string;
+  shiftName: string;
+  startTs: Date;
+  endTs: Date;
+  locationName: string | null;
+}): Promise<string> {
+  const firstName = opts.workerName.split(' ')[0] || opts.workerName;
+  const loc = opts.locationName ? `\n📍 ${opts.locationName}` : '';
+
+  return (
+    `Reminder: ${opts.shiftName}\n` +
+    `${fmtAu(opts.startTs)} — ${fmtAu(opts.endTs)}${loc}\n\n` +
+    `Hi ${firstName} — please confirm you can make this shift.\n` +
+    `Accept the shift request in the app (REQ) or decline (DEC) if you can't.`
   );
 }
 
