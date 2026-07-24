@@ -231,6 +231,54 @@ button {
   border-color: rgba(224, 163, 91, 0.45);
 }
 
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 960px;
+}
+
+.config-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.config-card h2 {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+}
+
+.config-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.config-card input {
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+}
+
+.config-card input:focus {
+  outline: 1px solid var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+
+.save-ok {
+  color: var(--accent);
+  margin: 0 0 16px;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -439,6 +487,10 @@ button {
     top: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr;
   }
 }
 

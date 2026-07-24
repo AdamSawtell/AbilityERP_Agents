@@ -4,6 +4,7 @@ import { env, SERVICE_VERSION } from './config';
 import { pool, testConnection } from './db/pool';
 import { apiKeyAuth } from './middleware/auth';
 import { auditRouter } from './routes/audit';
+import { configRouter } from './routes/config';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
 import { pathwaysRouter } from './routes/pathways';
@@ -33,6 +34,7 @@ async function main(): Promise<void> {
     pathwaysRouter,
     auditRouter,
     gapsRouter,
+    configRouter,
   );
 
   app.use((_req, res) => {

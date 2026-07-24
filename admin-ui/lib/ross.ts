@@ -58,3 +58,12 @@ export type AuditEntry = {
   approved_by: string | null;
   notes: string | null;
 };
+
+export type AgentConfig = {
+  auto_approve_threshold: number;
+  scan_interval_minutes: number;
+  pre_shift_confirm_hours: number;
+  escalation_hours_before_shift: number;
+  max_safe_matches_per_scan: number;
+  employee_no_auto_approve: number[];
+};
