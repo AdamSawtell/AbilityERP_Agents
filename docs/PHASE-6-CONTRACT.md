@@ -1,6 +1,6 @@
 # SAW047 — Ross Phase 6 Contract (Leave Replacer)
 
-> **Status:** In progress on EC2 `54.206.8.250` (Entra/Amplify still deferred)  
+> **Status:** Complete on EC2 `54.206.8.250` (Entra/Amplify still deferred) · commit `f109c69`  
 > **Ticket:** SAW047_ross_leave_replacer · AbilityERP_Agents  
 > **Kind:** app  
 > **Canonical product spec:** [ROSS-SCOPE.md](./ROSS-SCOPE.md) §7.5 / skill Leave Replacer  
@@ -25,9 +25,9 @@
 
 | ID | Scope item | Contract | Status |
 |---|---|---|---|
-| **6a** | Detect + vacate | Find AP leave overlapping staffed shifts; vacate line; persist tracking | shipping |
-| **6b** | Replace / propose | Match → auto-assign or proposals; Pathways to worker / officer on fail | shipping |
-| **6c** | Admin + Run Now | Leaves page + `POST /leave/run` + skill runner | shipping |
+| **6a** | Detect + vacate | Find AP leave overlapping staffed shifts; vacate line; persist tracking | **done** (`f109c69`) |
+| **6b** | Replace / propose | Match → auto-assign or proposals; Pathways to worker / officer on fail | **done** (`f109c69`) |
+| **6c** | Admin + Run Now | Leaves page + `POST /leave/run` + skill runner | **done** (`f109c69`) |
 
 **Exit:**
 

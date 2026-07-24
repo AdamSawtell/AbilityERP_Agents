@@ -9,4 +9,4 @@ Canonical SAW### registry: [AbilityERP Mobile APP `docs/TICKETS.md`](https://git
 | SAW044 | `ross_phase3` | app | Ross Phase 3 value features (auto-pilot first; no Entra) | done | [#3](https://github.com/AdamSawtell/AbilityERP_Agents/issues/3) · [PHASE-3-CONTRACT](./PHASE-3-CONTRACT.md) |
 | SAW045 | `ross_phase4` | app | Ross Phase 4 planner & reports (4a–4e; no Entra) | done | [#4](https://github.com/AdamSawtell/AbilityERP_Agents/issues/4) · [PHASE-4-CONTRACT](./PHASE-4-CONTRACT.md) |
 | SAW046 | `ross_skills_manager` | app | Ross Phase 5 Skills Manager (toggle + runtime gating; no Entra) | done | [#5](https://github.com/AdamSawtell/AbilityERP_Agents/issues/5) · [PHASE-5-CONTRACT](./PHASE-5-CONTRACT.md) |
-| SAW047 | `ross_leave_replacer` | app | Ross Phase 6 Leave Replacer (vacate + match; no Entra) | in-progress | [#6](https://github.com/AdamSawtell/AbilityERP_Agents/issues/6) · [PHASE-6-CONTRACT](./PHASE-6-CONTRACT.md) |
+| SAW047 | `ross_leave_replacer` | app | Ross Phase 6 Leave Replacer (vacate + match; no Entra) | done | [#6](https://github.com/AdamSawtell/AbilityERP_Agents/issues/6) · [PHASE-6-CONTRACT](./PHASE-6-CONTRACT.md) |
