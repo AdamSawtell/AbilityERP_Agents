@@ -1,6 +1,6 @@
 # SAW046 — Ross Phase 5 Contract (Skills Manager)
 
-> **Status:** In progress on EC2 `54.206.8.250` (Entra/Amplify still deferred)  
+> **Status:** Complete on EC2 `54.206.8.250` (Entra/Amplify still deferred) · commit `a3d6f00`  
 > **Ticket:** SAW046_ross_skills_manager · AbilityERP_Agents  
 > **Kind:** app  
 > **Canonical product spec:** [ROSS-SCOPE.md](./ROSS-SCOPE.md) §4.3 / §5  
@@ -26,10 +26,10 @@
 
 | ID | Scope item | Phase 5 contract | Status |
 |---|---|---|---|
-| **5a** | Skills list + toggle | Table + seed + `GET/PATCH /skills` + Skills admin page | shipping |
-| **5b** | Skill detail + Run Now | Detail page (purpose/trigger/deps) + `POST /skills/:key/run` | shipping |
-| **5c** | Runtime gating | Crons + emergency chain honour skill status | shipping |
-| **5d** | Matching weights | Soft-rule weights editable on Worker Matching skill | shipping |
+| **5a** | Skills list + toggle | Table + seed + `GET/PATCH /skills` + Skills admin page | **done** (`a3d6f00`) |
+| **5b** | Skill detail + Run Now | Detail page (purpose/trigger/deps) + `POST /skills/:key/run` | **done** (`a3d6f00`) |
+| **5c** | Runtime gating | Crons + emergency chain honour skill status | **done** (`a3d6f00`) |
+| **5d** | Matching weights | Soft-rule weights editable on Worker Matching skill | **done** (`a3d6f00`) |
 
 **Phase 5a exit:**
 

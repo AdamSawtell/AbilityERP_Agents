@@ -33,7 +33,7 @@ healthRouter.get('/health', async (_req, res) => {
     uptime: uptimeSeconds,
     version: SERVICE_VERSION,
     service: 'ross-roster',
-    ticket: 'SAW045',
+    ticket: 'SAW046',
     lastScan,
     lastEmergencySummary: memoryScan,
     config: config
