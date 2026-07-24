@@ -67,3 +67,15 @@ export type AgentConfig = {
   max_safe_matches_per_scan: number;
   employee_no_auto_approve: number[];
 };
+
+export type VacantShift = {
+  id: number;
+  name: string;
+  startTime?: string;
+  endTime?: string;
+  urgency?: string;
+  requiredStaff?: number | null;
+  assignedStaff?: number;
+};
+
+export type Horizon = 'today' | 'period' | 'next';

@@ -98,6 +98,7 @@ All in `adempiere` schema, **not** AD-registered:
 | Doc | Role |
 |---|---|
 | `docs/ROSS-SCOPE.md` | Canonical full product specification |
+| [PHASE-2-CONTRACT.md](./PHASE-2-CONTRACT.md) | Frozen Phase 2 admin UI (SAW043) |
 | Obsidian `Product Scope.md` | Historical product vision — derived |
 | Obsidian `Cursor Scope.md` | Superseded by this contract for Phase 1 |
 | Obsidian `ROSS-SCOPE.md` | Mirror of canonical; keep in sync when scope changes |

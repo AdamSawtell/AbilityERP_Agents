@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AuditEntry, Gap, Proposal } from '@/lib/ross';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import type { AuditEntry, Gap, Horizon, Proposal, VacantShift } from '@/lib/ross';
 
 type Health = {
   status?: string;
@@ -21,9 +21,33 @@ type FeedItem =
   | { kind: 'proposal'; at: number; proposal: Proposal }
   | { kind: 'gap'; at: number; gap: Gap };
 
+type ChatLine = {
+  id: string;
+  role: 'officer' | 'ross';
+  text: string;
+  at: number;
+};
+
+const HORIZONS: { id: Horizon; label: string }[] = [
+  { id: 'today', label: 'Today' },
+  { id: 'period', label: 'This Period' },
+  { id: 'next', label: 'Next Period' },
+];
+
+const HELP_TEXT = [
+  'Commands:',
+  '• scan — run Emergency Rosterer now',
+  '• status — Ross health + last scan',
+  '• vacant — list vacant shifts for current horizon',
+  '• gaps — unresolved gap count',
+  '• help — this list',
+].join('\n');
+
 export function DashboardClient() {
+  const [horizon, setHorizon] = useState<Horizon>('today');
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [gaps, setGaps] = useState<Gap[]>([]);
+  const [vacant, setVacant] = useState<VacantShift[]>([]);
   const [activity, setActivity] = useState<AuditEntry[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [health, setHealth] = useState<Health | null>(null);
@@ -31,6 +55,22 @@ export function DashboardClient() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [command, setCommand] = useState('');
+  const [chat, setChat] = useState<ChatLine[]>([
+    {
+      id: 'welcome',
+      role: 'ross',
+      text: 'Ross online. Type help for commands, or approve proposals below.',
+      at: Date.now(),
+    },
+  ]);
+
+  const pushChat = useCallback((role: ChatLine['role'], text: string) => {
+    setChat((prev) => [
+      ...prev.slice(-40),
+      { id: `${Date.now()}-${Math.random()}`, role, text, at: Date.now() },
+    ]);
+  }, []);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -40,9 +80,13 @@ export function DashboardClient() {
         fetch('/api/gaps').then(async (res) => ({ res, json: await res.json() })),
         fetch('/api/health').then(async (res) => ({ res, json: await res.json() })),
         fetch('/api/audit').then(async (res) => ({ res, json: await res.json() })),
+        fetch(`/api/vacant?horizon=${horizon}`).then(async (res) => ({
+          res,
+          json: await res.json(),
+        })),
       ]);
 
-      const [p, g, h, a] = settled;
+      const [p, g, h, a, v] = settled;
       const errors: string[] = [];
 
       if (p.status === 'fulfilled' && p.value.res.ok) {
@@ -68,6 +112,10 @@ export function DashboardClient() {
         setActivity((a.value.json.entries ?? []).slice(0, 8));
       }
 
+      if (v.status === 'fulfilled' && v.value.res.ok) {
+        setVacant(v.value.json.shifts ?? []);
+      }
+
       if (errors.length) {
         setError(`Failed to load: ${errors.join(', ')}`);
       }
@@ -76,9 +124,10 @@ export function DashboardClient() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [horizon]);
 
   useEffect(() => {
+    setLoading(true);
     void refresh();
     const id = setInterval(() => void refresh(), 20_000);
     return () => clearInterval(id);
@@ -91,9 +140,18 @@ export function DashboardClient() {
       const res = await fetch('/api/scan', { method: 'POST' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Scan failed');
+      const s = json.summary;
+      pushChat(
+        'ross',
+        s
+          ? `Scan complete — ${s.vacantCount ?? 0} vacant, ${s.proposalsWritten ?? 0} proposals, ${s.gapsLogged ?? 0} gaps.`
+          : 'Scan complete.',
+      );
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Scan failed');
+      const msg = err instanceof Error ? err.message : 'Scan failed';
+      setError(msg);
+      pushChat('ross', `Scan failed: ${msg}`);
     } finally {
       setScanning(false);
     }
@@ -110,6 +168,11 @@ export function DashboardClient() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Approve failed');
+      pushChat(
+        'ross',
+        `Approved #${id}` +
+          (json.pathwaysMessageSent ? ' — Pathways notified.' : ' — assigned (no Pathways).'),
+      );
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Approve failed');
@@ -129,6 +192,7 @@ export function DashboardClient() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Reject failed');
+      pushChat('ross', `Rejected proposal #${id}.`);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reject failed');
@@ -137,32 +201,116 @@ export function DashboardClient() {
     }
   }
 
+  async function handleCommand(raw: string) {
+    const text = raw.trim();
+    if (!text) return;
+    pushChat('officer', text);
+    setCommand('');
+
+    const cmd = text.toLowerCase().replace(/^\//, '');
+    if (cmd === 'help' || cmd === '?') {
+      pushChat('ross', HELP_TEXT);
+      return;
+    }
+    if (cmd === 'scan' || cmd === 'run scan' || cmd === 'run') {
+      await runScan();
+      return;
+    }
+    if (cmd === 'status') {
+      const online = health?.status === 'ok' ? 'online' : 'degraded';
+      const last = health?.lastScan?.emergency
+        ? new Date(health.lastScan.emergency).toLocaleString()
+        : 'never';
+      pushChat(
+        'ross',
+        `Ross ${online}. Pending ${pendingCount}. Vacant (${horizon}) ${vacant.length}. Last emergency scan: ${last}.`,
+      );
+      return;
+    }
+    if (cmd === 'vacant' || cmd === 'vacancies') {
+      if (vacant.length === 0) {
+        pushChat('ross', `No vacant shifts in ${horizon}.`);
+        return;
+      }
+      const lines = vacant
+        .slice(0, 8)
+        .map((s) => `• ${s.name || s.id}${s.urgency ? ` [${s.urgency}]` : ''}`)
+        .join('\n');
+      pushChat('ross', `Vacant (${horizon}): ${vacant.length}\n${lines}`);
+      return;
+    }
+    if (cmd === 'gaps') {
+      pushChat(
+        'ross',
+        gaps.length === 0
+          ? 'No unresolved gaps.'
+          : `${gaps.length} unresolved gap(s). Open Gaps in the sidebar for detail.`,
+      );
+      return;
+    }
+    if (cmd === 'refresh') {
+      await refresh();
+      pushChat('ross', 'Feed refreshed.');
+      return;
+    }
+
+    pushChat('ross', `Unknown command "${text}". Type help.`);
+  }
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    void handleCommand(command);
+  }
+
+  const alternatesByShift = useMemo(() => {
+    const map = new Map<number, Proposal[]>();
+    for (const p of proposals) {
+      const list = map.get(p.shiftId) ?? [];
+      list.push(p);
+      map.set(p.shiftId, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => b.score - a.score);
+    }
+    return map;
+  }, [proposals]);
+
+  const vacantIds = useMemo(() => new Set(vacant.map((s) => Number(s.id))), [vacant]);
+
   const feed = useMemo<FeedItem[]>(() => {
+    const filteredProposals =
+      horizon === 'today'
+        ? proposals
+        : proposals.filter((p) => vacantIds.has(Number(p.shiftId)));
+
     const items: FeedItem[] = [
-      ...proposals.map((proposal) => ({
+      ...filteredProposals.map((proposal) => ({
         kind: 'proposal' as const,
         at: new Date(proposal.proposedAt).getTime() || 0,
         proposal,
       })),
-      ...gaps.map((gap) => ({
-        kind: 'gap' as const,
-        at: new Date(gap.detected_at).getTime() || 0,
-        gap,
-      })),
+      ...(horizon === 'today'
+        ? gaps.map((gap) => ({
+            kind: 'gap' as const,
+            at: new Date(gap.detected_at).getTime() || 0,
+            gap,
+          }))
+        : []),
     ];
     items.sort((a, b) => b.at - a.at);
     return items;
-  }, [proposals, gaps]);
+  }, [proposals, gaps, horizon, vacantIds]);
 
   const ok = health?.status === 'ok';
   const summary = health?.lastEmergencySummary;
+  const horizonLabel = HORIZONS.find((h) => h.id === horizon)?.label ?? 'Today';
 
   return (
     <div className="dash">
       <div className="dash-main">
         <div className="topbar">
           <div>
-            <h1>Today</h1>
+            <h1>{horizonLabel}</h1>
             <p>
               {`${pendingCount} proposal${pendingCount === 1 ? '' : 's'} waiting — Ross proposes, you confirm.`}
             </p>
@@ -180,15 +328,57 @@ export function DashboardClient() {
           </div>
         </div>
 
+        <div className="horizon-tabs" role="tablist" aria-label="Time horizon">
+          {HORIZONS.map((h) => (
+            <button
+              key={h.id}
+              type="button"
+              role="tab"
+              aria-selected={horizon === h.id}
+              className={`horizon-tab ${horizon === h.id ? 'active' : ''}`}
+              onClick={() => setHorizon(h.id)}
+            >
+              {h.label}
+              {horizon === h.id && vacant.length > 0 ? (
+                <span className="horizon-count">{vacant.length}</span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+
         {error ? <p style={{ color: 'var(--danger)' }}>{error}</p> : null}
+
+        <div className="chat-panel">
+          <div className="chat-log" aria-live="polite">
+            {chat.map((line) => (
+              <div key={line.id} className={`chat-line ${line.role}`}>
+                <span className="chat-who">{line.role === 'ross' ? 'Ross' : 'You'}</span>
+                <pre>{line.text}</pre>
+              </div>
+            ))}
+          </div>
+          <form className="chat-input" onSubmit={onSubmit}>
+            <input
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              placeholder="Type a command — try help or scan"
+              aria-label="Ross command"
+              autoComplete="off"
+            />
+            <button className="btn btn-primary" type="submit" disabled={!command.trim()}>
+              Send
+            </button>
+          </form>
+        </div>
 
         <div className="feed">
           {loading && feed.length === 0 ? (
             <div className="empty">Loading proposals…</div>
           ) : feed.length === 0 ? (
             <div className="empty">
-              No pending proposals or gaps. Run a scan or wait for the next Emergency Rosterer
-              cycle.
+              {horizon === 'today'
+                ? 'No pending proposals or gaps. Run a scan or type scan in the command bar.'
+                : `No proposals tied to vacant shifts in ${horizonLabel}. Vacant count: ${vacant.length}.`}
             </div>
           ) : (
             feed.map((item) => {
@@ -220,6 +410,7 @@ export function DashboardClient() {
               const reason =
                 p.rulesPassed?.reason ||
                 `${p.workerName} is a ${p.score}/100 match for ${p.shiftName}`;
+              const alts = (alternatesByShift.get(p.shiftId) ?? []).filter((a) => a.id !== p.id);
               return (
                 <article key={`p-${p.id}`} className="bubble">
                   <div className="bubble-meta">
@@ -245,6 +436,26 @@ export function DashboardClient() {
                         </span>
                       ))}
                   </div>
+                  {alts.length > 0 ? (
+                    <div className="alts">
+                      <span className="alts-label">Alternates</span>
+                      {alts.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          className="chip alt-chip"
+                          onClick={() =>
+                            pushChat(
+                              'ross',
+                              `Alternate #${a.id}: ${a.workerName} at ${a.score}/100 for ${a.shiftName}. Scroll to that card or Approve from there.`,
+                            )
+                          }
+                        >
+                          {a.workerName} {a.score}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="card-actions">
                     <button
                       className="btn btn-primary"
@@ -269,6 +480,23 @@ export function DashboardClient() {
       </div>
 
       <aside className="dash-rail">
+        <section className="widget">
+          <h3>Vacant · {horizonLabel}</h3>
+          {vacant.length === 0 ? (
+            <p className="widget-foot">No vacant shifts in this horizon.</p>
+          ) : (
+            <ul className="activity">
+              {vacant.slice(0, 6).map((s) => (
+                <li key={s.id}>
+                  <span className="activity-action">{s.name || s.id}</span>
+                  <span className="activity-time">{s.urgency ?? '—'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="widget-foot">{vacant.length} vacant · horizon `{horizon}`</p>
+        </section>
+
         <section className="widget">
           <h3>Last scan</h3>
           <dl className="stat-grid">
@@ -308,7 +536,7 @@ export function DashboardClient() {
               <dd>{health?.config?.auto_approve_threshold ?? '—'}%</dd>
             </div>
           </dl>
-          <p className="widget-foot">Phase 1: auto-assign writes stay off.</p>
+          <p className="widget-foot">Auto-assign writes stay off until enabled.</p>
         </section>
 
         <section className="widget">

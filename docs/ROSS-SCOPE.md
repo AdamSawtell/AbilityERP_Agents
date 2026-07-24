@@ -1429,7 +1429,10 @@ On each tick:
 
 ### 10.2 Phase 2: Admin UI (Week 3-4)
 
-| 2a | Amplify app + tabbed layout + chat bubble components | ~800 | Chat messages visible in browser |
+> **Build contract (wins on conflicts):** [PHASE-2-CONTRACT.md](./PHASE-2-CONTRACT.md) · ticket **SAW043**  
+> Phase 2 ships on EC2 `:3003` first; Amplify hosting is optional later.
+
+| 2a | Tabbed layout + chat bubble components | ~800 | Chat messages visible in browser |
 |---|---|---|---|
 | 2b | Approve/Reject/Alternates + proposal table reads | ~400 | End-to-end: approve → DB write → Pathways msg |
 | 2c | No-match cards + hot failover display + escalation | ~300 | Gap items visible in UI |
