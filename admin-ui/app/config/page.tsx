@@ -9,6 +9,7 @@ type FormState = {
   pre_shift_confirm_hours: string;
   escalation_hours_before_shift: string;
   max_safe_matches_per_scan: string;
+  auto_assign_enabled: boolean;
 };
 
 const empty: FormState = {
@@ -17,6 +18,7 @@ const empty: FormState = {
   pre_shift_confirm_hours: '',
   escalation_hours_before_shift: '',
   max_safe_matches_per_scan: '',
+  auto_assign_enabled: false,
 };
 
 function fromConfig(c: AgentConfig): FormState {
@@ -26,6 +28,7 @@ function fromConfig(c: AgentConfig): FormState {
     pre_shift_confirm_hours: String(c.pre_shift_confirm_hours),
     escalation_hours_before_shift: String(c.escalation_hours_before_shift),
     max_safe_matches_per_scan: String(c.max_safe_matches_per_scan),
+    auto_assign_enabled: Boolean(c.auto_assign_enabled),
   };
 }
 
@@ -51,7 +54,7 @@ export default function ConfigPage() {
     })();
   }, []);
 
-  function setField(key: keyof FormState, value: string) {
+  function setField(key: keyof FormState, value: string | boolean) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -66,6 +69,7 @@ export default function ConfigPage() {
         pre_shift_confirm_hours: Number(form.pre_shift_confirm_hours),
         escalation_hours_before_shift: Number(form.escalation_hours_before_shift),
         max_safe_matches_per_scan: Number(form.max_safe_matches_per_scan),
+        auto_assign_enabled: form.auto_assign_enabled,
       };
       const res = await fetch('/api/config', {
         method: 'PUT',
@@ -88,7 +92,7 @@ export default function ConfigPage() {
       <div className="topbar">
         <div>
           <h1>Config</h1>
-          <p>Global Ross settings — changes take effect on the next scan cycle.</p>
+          <p>Global Ross settings — no Entra required; changes apply on the next scan.</p>
         </div>
         <div className="actions">
           <button className="btn btn-primary" onClick={() => void save()} disabled={loading || saving}>
@@ -139,7 +143,15 @@ export default function ConfigPage() {
           </section>
 
           <section className="config-card">
-            <h2>Matching</h2>
+            <h2>Auto-pilot</h2>
+            <label className="toggle-row">
+              <span>Enable auto-assign writes</span>
+              <input
+                type="checkbox"
+                checked={form.auto_assign_enabled}
+                onChange={(e) => setField('auto_assign_enabled', e.target.checked)}
+              />
+            </label>
             <label>
               Auto-approve threshold (%)
               <input
@@ -161,8 +173,9 @@ export default function ConfigPage() {
               />
             </label>
             <p className="widget-foot">
-              Phase 1 keeps auto-assign writes off even when a score clears the threshold —
-              proposals still need human Approve.
+              {form.auto_assign_enabled
+                ? `ON — scans will assign the top match when score ≥ ${form.auto_approve_threshold || '—'}.`
+                : 'OFF — scans only write proposals. Use Bulk approve on the Dashboard for safe matches.'}
             </p>
           </section>
         </div>

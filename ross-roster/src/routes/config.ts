@@ -30,6 +30,7 @@ configRouter.put('/config', async (req, res) => {
       'escalation_hours_before_shift',
       'max_safe_matches_per_scan',
       'employee_no_auto_approve',
+      'auto_assign_enabled',
     ];
     for (const key of keys) {
       if (req.body?.[key] !== undefined) {

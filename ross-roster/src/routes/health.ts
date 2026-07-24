@@ -33,17 +33,19 @@ healthRouter.get('/health', async (_req, res) => {
     uptime: uptimeSeconds,
     version: SERVICE_VERSION,
     service: 'ross-roster',
-    ticket: 'SAW042',
+    ticket: 'SAW044',
     lastScan,
     lastEmergencySummary: memoryScan,
     config: config
       ? {
           auto_approve_threshold: config.auto_approve_threshold,
           scan_interval_minutes: config.scan_interval_minutes,
+          auto_assign_enabled: config.auto_assign_enabled,
         }
       : {
           auto_approve_threshold: env.defaults.autoApproveThreshold,
           scan_interval_minutes: env.defaults.scanIntervalMinutes,
+          auto_assign_enabled: false,
         },
     db: db.ok ? { ok: true } : { ok: false, error: db.error },
   });

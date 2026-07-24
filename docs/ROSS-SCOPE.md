@@ -1442,6 +1442,9 @@ On each tick:
 
 ### 10.3 Phase 3: Value Features (Week 5-6)
 
+> **Build contract (wins on conflicts):** [PHASE-3-CONTRACT.md](./PHASE-3-CONTRACT.md) · ticket **SAW044**  
+> **Auth:** Entra/JWT deferred — test on private EC2 without SSO.
+
 | 3a | Auto-pilot threshold + bulk approve + summary | ~300 | Safe matches auto-assign, human sees only exceptions |
 |---|---|---|---|
 | 3b | Pre-shift confirmation timer + worker chat flow | ~400 | Workers receive confirm requests, responses handled |

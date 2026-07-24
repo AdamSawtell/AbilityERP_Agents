@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { assignWorker } from '../db/queries/assign';
 import { listVacantShifts, loadShiftContext } from '../db/queries/shifts';
 import { matchShift } from '../engine/matcher';
 import { writeAudit } from '../services/audit';
@@ -12,8 +13,10 @@ export type ScanSummary = {
   vacantCount: number;
   proposedShifts: number;
   proposalsWritten: number;
+  autoAssigned: number;
   gapsLogged: number;
   expiredProposals: number;
+  autoAssignEnabled: boolean;
   errors: { shiftId: number; message: string }[];
 };
 
@@ -38,13 +41,16 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
     vacantCount: 0,
     proposedShifts: 0,
     proposalsWritten: 0,
+    autoAssigned: 0,
     gapsLogged: 0,
     expiredProposals: 0,
+    autoAssignEnabled: false,
     errors: [],
   };
 
   try {
     const config = await getConfig();
+    summary.autoAssignEnabled = config.auto_assign_enabled;
     summary.expiredProposals = await expireStaleProposals(2);
 
     const start = new Date();
@@ -62,6 +68,39 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
           continue;
         }
 
+        const best = match.candidates[0];
+        const blocked = config.employee_no_auto_approve.includes(best.workerId);
+        const canAuto =
+          config.auto_assign_enabled &&
+          best.score >= config.auto_approve_threshold &&
+          !blocked;
+
+        if (canAuto) {
+          const assignResult = await assignWorker({
+            shiftId,
+            workerId: best.workerId,
+            approvedBy: 'Ross Auto-pilot',
+            notes: `Auto-assigned (score ${best.score} ≥ ${config.auto_approve_threshold})`,
+            notifyWorker: true,
+          });
+          await writeAudit({
+            agentType: 'emergency',
+            action: 'match_auto_assigned',
+            shiftId,
+            workerId: best.workerId,
+            score: best.score,
+            approvedBy: 'Ross Auto-pilot',
+            rulesPassed: {
+              hard: best.hardRules,
+              soft: best.softRules,
+              isAutoApproved: true,
+            },
+            notes: `assignment ${assignResult.assignmentId}; Pathways=${assignResult.pathwaysMessageSent}`,
+          });
+          summary.autoAssigned += 1;
+          continue;
+        }
+
         const ctx = await loadShiftContext(shiftId);
         const written = await upsertProposalsForShift({
           shiftId,
@@ -75,14 +114,16 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
           agentType: 'emergency',
           action: 'match_proposed',
           shiftId,
-          workerId: match.candidates[0]?.workerId,
-          score: match.candidates[0]?.score,
+          workerId: best.workerId,
+          score: best.score,
           rulesPassed: match.candidates.map((c) => ({
             workerId: c.workerId,
             score: c.score,
             isAutoApproved: c.isAutoApproved,
           })),
-          notes: `${match.candidates.length} candidate(s); auto-assign disabled in Phase 1`,
+          notes: config.auto_assign_enabled
+            ? `${match.candidates.length} candidate(s); best ${best.score} below threshold ${config.auto_approve_threshold}${blocked ? ' or blocked for auto' : ''}`
+            : `${match.candidates.length} candidate(s); auto-assign off — human review`,
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -102,15 +143,18 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
         vacantCount: summary.vacantCount,
         proposedShifts: summary.proposedShifts,
         proposalsWritten: summary.proposalsWritten,
+        autoAssigned: summary.autoAssigned,
         gapsLogged: summary.gapsLogged,
         expiredProposals: summary.expiredProposals,
         errorCount: summary.errors.length,
         scanIntervalMinutes: config.scan_interval_minutes,
+        autoAssignEnabled: config.auto_assign_enabled,
+        autoApproveThreshold: config.auto_approve_threshold,
       }),
     });
 
     console.log(
-      `[ross] emergency scan (${trigger}): vacant=${summary.vacantCount} proposals=${summary.proposalsWritten} gaps=${summary.gapsLogged}`,
+      `[ross] emergency scan (${trigger}): vacant=${summary.vacantCount} auto=${summary.autoAssigned} proposals=${summary.proposalsWritten} gaps=${summary.gapsLogged}`,
     );
     return summary;
   } finally {
@@ -119,7 +163,6 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
 }
 
 export function startEmergencyCron(): void {
-  // Check every minute; honour scan_interval_minutes from config via last-run gating
   if (cronTask) return;
 
   cronTask = cron.schedule('* * * * *', () => {

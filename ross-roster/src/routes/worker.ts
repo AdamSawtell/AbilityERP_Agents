@@ -2,8 +2,11 @@ import { Router } from 'express';
 import { errorMessage } from '../db/pool';
 import { assignWorker } from '../db/queries/assign';
 import { writeAudit } from '../services/audit';
+import { getConfig } from '../services/configStore';
 import {
+  expireSiblingProposals,
   getProposal,
+  listBulkApproveTargets,
   listPendingProposals,
   markProposalStatus,
 } from '../services/proposals';
@@ -34,6 +37,90 @@ workerRouter.get('/proposals/pending', async (req, res) => {
     res.json(payload);
   } catch (err) {
     res.status(503).json({ error: 'db_unavailable', message: errorMessage(err) });
+  }
+});
+
+// Static path before /proposals/:id/*
+workerRouter.post('/proposals/bulk-approve', async (req, res) => {
+  try {
+    const approvedBy = String(req.body?.approvedBy ?? '').trim();
+    if (!approvedBy) {
+      res.status(400).json({ error: 'invalid_body', message: 'approvedBy required' });
+      return;
+    }
+
+    const config = await getConfig();
+    const minScore = Number.isFinite(Number(req.body?.minScore))
+      ? Number(req.body.minScore)
+      : config.auto_approve_threshold;
+
+    const targets = await listBulkApproveTargets(minScore, 50);
+    const results: {
+      proposalId: number;
+      success: boolean;
+      error?: string;
+      assignmentId?: number;
+      pathwaysMessageSent?: boolean;
+    }[] = [];
+
+    for (const proposal of targets) {
+      try {
+        const marked = await markProposalStatus({
+          id: proposal.id,
+          status: 'approved',
+          reviewedBy: approvedBy,
+          notes: `Bulk approve (score ${proposal.score} ≥ ${minScore})`,
+        });
+        if (!marked) {
+          results.push({ proposalId: proposal.id, success: false, error: 'not_pending' });
+          continue;
+        }
+
+        const assignResult = await assignWorker({
+          shiftId: proposal.shiftId,
+          workerId: proposal.workerId,
+          approvedBy,
+          notes: `Bulk approved proposal #${proposal.id}`,
+          notifyWorker: req.body?.notifyWorker !== false,
+        });
+
+        await writeAudit({
+          agentType: 'emergency',
+          action: 'match_approved',
+          shiftId: proposal.shiftId,
+          workerId: proposal.workerId,
+          score: proposal.score,
+          approvedBy,
+          notes: `bulk proposal #${proposal.id}`,
+        });
+
+        await expireSiblingProposals(proposal.shiftId, proposal.id);
+
+        results.push({
+          proposalId: proposal.id,
+          success: true,
+          assignmentId: assignResult.assignmentId,
+          pathwaysMessageSent: assignResult.pathwaysMessageSent,
+        });
+      } catch (err) {
+        results.push({
+          proposalId: proposal.id,
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      minScore,
+      attempted: targets.length,
+      approved: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
+      results,
+    });
+  } catch (err) {
+    res.status(503).json({ error: 'bulk_approve_failed', message: errorMessage(err) });
   }
 });
 
@@ -84,6 +171,8 @@ workerRouter.post('/proposals/:id/approve', async (req, res) => {
       approvedBy,
       notes: `proposal #${id}`,
     });
+
+    await expireSiblingProposals(Number(proposal.shift_id), id);
 
     res.json({ proposalId: id, ...assignResult });
   } catch (err) {

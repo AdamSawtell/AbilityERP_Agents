@@ -92,6 +92,35 @@ export async function markProposalStatus(opts: {
   return rows[0] ?? null;
 }
 
+function mapProposalRow(r: {
+  id: number | string;
+  shift_id: number | string;
+  shift_name: string | null;
+  worker_id: number | string;
+  worker_name: string | null;
+  score: number | string;
+  rules_passed: unknown;
+  rules_failed: unknown;
+  proposed_at: Date | string;
+  status: string;
+}) {
+  return {
+    id: Number(r.id),
+    shiftId: Number(r.shift_id),
+    shiftName: r.shift_name,
+    workerId: Number(r.worker_id),
+    workerName: r.worker_name,
+    score: Number(r.score),
+    isAutoApproved: Boolean(
+      (r.rules_passed as { isAutoApproved?: boolean } | null)?.isAutoApproved,
+    ),
+    proposedAt: r.proposed_at,
+    status: r.status,
+    rulesPassed: r.rules_passed,
+    rulesFailed: r.rules_failed,
+  };
+}
+
 export async function listPendingProposals(limit = 50, offset = 0) {
   const { rows } = await query(
     `SELECT id, shift_id, shift_name, worker_id, worker_name, score,
@@ -114,29 +143,64 @@ export async function listPendingProposals(limit = 50, offset = 0) {
     `SELECT COUNT(*)::text AS cnt
      FROM adempiere.rostering_agent_proposals
      WHERE status = 'pending'
-       AND COALESCE((rules_passed->>'isAutoApproved')::boolean, false) = true
+       AND (
+         COALESCE((rules_passed->>'isAutoApproved')::boolean, false) = true
+         OR score >= (
+           SELECT COALESCE(NULLIF(value, '')::int, 90)
+           FROM adempiere.rostering_agent_config
+           WHERE key = 'auto_approve_threshold'
+           LIMIT 1
+         )
+       )
        AND proposed_at::date = CURRENT_DATE`,
   );
 
+  const exceptionRes = await query<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt
+     FROM adempiere.rostering_agent_proposals
+     WHERE status = 'pending'
+       AND COALESCE((rules_passed->>'isAutoApproved')::boolean, false) = false
+       AND score < (
+         SELECT COALESCE(NULLIF(value, '')::int, 90)
+         FROM adempiere.rostering_agent_config
+         WHERE key = 'auto_approve_threshold'
+         LIMIT 1
+       )`,
+  );
+
   return {
-    proposals: rows.map((r) => ({
-      id: Number(r.id),
-      shiftId: Number(r.shift_id),
-      shiftName: r.shift_name,
-      workerId: Number(r.worker_id),
-      workerName: r.worker_name,
-      score: Number(r.score),
-      isAutoApproved: Boolean(
-        (r.rules_passed as { isAutoApproved?: boolean } | null)?.isAutoApproved,
-      ),
-      proposedAt: r.proposed_at,
-      status: r.status,
-      rulesPassed: r.rules_passed,
-      rulesFailed: r.rules_failed,
-    })),
+    proposals: rows.map((r) => mapProposalRow(r as Parameters<typeof mapProposalRow>[0])),
     pendingCount: Number(countRes.rows[0]?.cnt ?? 0),
     autoApprovedFlaggedToday: Number(autoRes.rows[0]?.cnt ?? 0),
+    exceptionCount: Number(exceptionRes.rows[0]?.cnt ?? 0),
     limit,
     offset,
   };
+}
+
+/** One top pending proposal per shift at/above minScore (for bulk approve). */
+export async function listBulkApproveTargets(minScore: number, limit = 50) {
+  const { rows } = await query(
+    `SELECT DISTINCT ON (shift_id)
+        id, shift_id, shift_name, worker_id, worker_name, score,
+        rules_passed, rules_failed, proposed_at, status
+     FROM adempiere.rostering_agent_proposals
+     WHERE status = 'pending'
+       AND score >= $1
+     ORDER BY shift_id, score DESC, proposed_at ASC
+     LIMIT $2`,
+    [minScore, limit],
+  );
+  return rows.map((r) => mapProposalRow(r as Parameters<typeof mapProposalRow>[0]));
+}
+
+export async function expireSiblingProposals(shiftId: number, keepId: number): Promise<void> {
+  await query(
+    `UPDATE adempiere.rostering_agent_proposals
+     SET status = 'expired',
+         reviewed_at = NOW(),
+         notes = COALESCE(notes, '') || CASE WHEN notes IS NULL OR notes = '' THEN '' ELSE ' | ' END || 'superseded by bulk approve'
+     WHERE shift_id = $1 AND status = 'pending' AND id <> $2`,
+    [shiftId, keepId],
+  );
 }

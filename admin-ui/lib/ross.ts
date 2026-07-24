@@ -66,6 +66,7 @@ export type AgentConfig = {
   escalation_hours_before_shift: number;
   max_safe_matches_per_scan: number;
   employee_no_auto_approve: number[];
+  auto_assign_enabled: boolean;
 };
 
 export type VacantShift = {

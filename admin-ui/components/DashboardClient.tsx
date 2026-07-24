@@ -10,10 +10,13 @@ type Health = {
     vacantCount?: number;
     proposalsWritten?: number;
     gapsLogged?: number;
+    autoAssigned?: number;
+    autoAssignEnabled?: boolean;
   } | null;
   config?: {
     auto_approve_threshold?: number;
     scan_interval_minutes?: number;
+    auto_assign_enabled?: boolean;
   };
 };
 
@@ -37,6 +40,7 @@ const HORIZONS: { id: Horizon; label: string }[] = [
 const HELP_TEXT = [
   'Commands:',
   '• scan — run Emergency Rosterer now',
+  '• bulk — approve all pending ≥ auto-approve threshold (one per shift)',
   '• status — Ross health + last scan',
   '• vacant — list vacant shifts for current horizon',
   '• gaps — unresolved gap count',
@@ -50,10 +54,13 @@ export function DashboardClient() {
   const [vacant, setVacant] = useState<VacantShift[]>([]);
   const [activity, setActivity] = useState<AuditEntry[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [safeCount, setSafeCount] = useState(0);
+  const [exceptionCount, setExceptionCount] = useState(0);
   const [health, setHealth] = useState<Health | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [command, setCommand] = useState('');
   const [chat, setChat] = useState<ChatLine[]>([
@@ -92,6 +99,8 @@ export function DashboardClient() {
       if (p.status === 'fulfilled' && p.value.res.ok) {
         setProposals(p.value.json.proposals ?? []);
         setPendingCount(p.value.json.pendingCount ?? 0);
+        setSafeCount(p.value.json.autoApprovedFlaggedToday ?? 0);
+        setExceptionCount(p.value.json.exceptionCount ?? 0);
       } else {
         errors.push('proposals');
       }
@@ -181,6 +190,31 @@ export function DashboardClient() {
     }
   }
 
+  async function bulkApprove() {
+    setBulkBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/proposals/bulk-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Bulk approve failed');
+      pushChat(
+        'ross',
+        `Bulk approve: ${json.approved ?? 0} assigned (min score ${json.minScore ?? '—'}), ${json.failed ?? 0} failed.`,
+      );
+      await refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Bulk approve failed';
+      setError(msg);
+      pushChat('ross', `Bulk approve failed: ${msg}`);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   async function reject(id: number) {
     setBusyId(id);
     setError(null);
@@ -214,6 +248,10 @@ export function DashboardClient() {
     }
     if (cmd === 'scan' || cmd === 'run scan' || cmd === 'run') {
       await runScan();
+      return;
+    }
+    if (cmd === 'bulk' || cmd === 'bulk approve' || cmd === 'approve safe') {
+      await bulkApprove();
       return;
     }
     if (cmd === 'status') {
@@ -319,8 +357,22 @@ export function DashboardClient() {
             <span className={`status-pill ${ok ? 'ok' : ''}`}>
               {ok ? 'Ross online' : 'Ross degraded'}
             </span>
+            <span
+              className={`status-pill ${health?.config?.auto_assign_enabled ? 'ok' : ''}`}
+              title="Auto-assign writes during scan"
+            >
+              {health?.config?.auto_assign_enabled ? 'Auto-pilot ON' : 'Auto-pilot OFF'}
+            </span>
             <button className="btn" onClick={() => void refresh()}>
               Refresh
+            </button>
+            <button
+              className="btn"
+              onClick={() => void bulkApprove()}
+              disabled={bulkBusy || safeCount === 0}
+              title="Approve pending proposals at/above threshold (one per shift)"
+            >
+              {bulkBusy ? 'Bulk…' : `Bulk approve (${safeCount})`}
             </button>
             <button className="btn btn-primary" onClick={() => void runScan()} disabled={scanning}>
               {scanning ? 'Scanning…' : 'Run scan'}
@@ -498,6 +550,32 @@ export function DashboardClient() {
         </section>
 
         <section className="widget">
+          <h3>Summary</h3>
+          <dl className="stat-grid">
+            <div>
+              <dt>Pending</dt>
+              <dd>{pendingCount}</dd>
+            </div>
+            <div>
+              <dt>Safe</dt>
+              <dd>{safeCount}</dd>
+            </div>
+            <div>
+              <dt>Exceptions</dt>
+              <dd>{exceptionCount}</dd>
+            </div>
+            <div>
+              <dt>Auto last</dt>
+              <dd>{summary?.autoAssigned ?? 0}</dd>
+            </div>
+          </dl>
+          <p className="widget-foot">
+            Safe = score ≥ {health?.config?.auto_approve_threshold ?? '—'}% (or flagged). No Entra
+            needed to test.
+          </p>
+        </section>
+
+        <section className="widget">
           <h3>Last scan</h3>
           <dl className="stat-grid">
             <div>
@@ -513,8 +591,8 @@ export function DashboardClient() {
               <dd>{summary?.gapsLogged ?? gaps.length}</dd>
             </div>
             <div>
-              <dt>Pending</dt>
-              <dd>{pendingCount}</dd>
+              <dt>Auto</dt>
+              <dd>{summary?.autoAssigned ?? 0}</dd>
             </div>
           </dl>
           <p className="widget-foot">
@@ -532,11 +610,15 @@ export function DashboardClient() {
               <dd>{health?.config?.scan_interval_minutes ?? '—'} min</dd>
             </div>
             <div>
-              <dt>Auto-approve</dt>
+              <dt>Threshold</dt>
               <dd>{health?.config?.auto_approve_threshold ?? '—'}%</dd>
             </div>
+            <div>
+              <dt>Auto-assign</dt>
+              <dd>{health?.config?.auto_assign_enabled ? 'ON' : 'OFF'}</dd>
+            </div>
           </dl>
-          <p className="widget-foot">Auto-assign writes stay off until enabled.</p>
+          <p className="widget-foot">Toggle auto-assign under Config → Auto-pilot.</p>
         </section>
 
         <section className="widget">

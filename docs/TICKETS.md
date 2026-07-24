@@ -6,3 +6,4 @@ Canonical SAW### registry: [AbilityERP Mobile APP `docs/TICKETS.md`](https://git
 |----|------|------|-------------|--------|-----------|
 | SAW042 | `ross_roster_phase1` | app | Ross Phase 1 foundation (Express :3002) | done | [#1](https://github.com/AdamSawtell/AbilityERP_Agents/issues/1) · [`ross-roster/`](../ross-roster/) |
 | SAW043 | `ross_admin_ui` | app | Ross admin UI Phase 2 (Next.js :3003) | done | [#2](https://github.com/AdamSawtell/AbilityERP_Agents/issues/2) · [`admin-ui/`](../admin-ui/) · [PHASE-2-CONTRACT](./PHASE-2-CONTRACT.md) |
+| SAW044 | `ross_phase3` | app | Ross Phase 3 value features (auto-pilot first; no Entra) | in-progress | [#3](https://github.com/AdamSawtell/AbilityERP_Agents/issues/3) · [PHASE-3-CONTRACT](./PHASE-3-CONTRACT.md) |

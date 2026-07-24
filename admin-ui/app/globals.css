@@ -398,6 +398,19 @@ button {
   color: var(--text);
 }
 
+.toggle-row {
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.toggle-row input[type='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--accent);
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
