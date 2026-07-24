@@ -29,7 +29,7 @@
 | **3b** | Pre-shift confirmation + worker chat | Pathways confirm + REQ/DEC poll + escalate/vacate + Confirms admin | **done** (`11cc4e5`) |
 | **3c** | Swap management | Detect / propose / execute swaps + Swaps admin | **done** (`0fdfb0d`) |
 | **3d** | Record panel | Slide-in shift + worker detail | **done** (`af393e3`) |
-| **3e** | Coverage heatmap | Sidebar heatmap | **done** (`ee2a987`+) |
+| **3e** | Coverage heatmap | Sidebar heatmap | **done** (`dbbe4c1`) |
 
 **Phase 3e exit:**
 
