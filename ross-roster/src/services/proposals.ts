@@ -57,6 +57,41 @@ export async function upsertProposalsForShift(opts: {
   return written;
 }
 
+export async function getProposal(id: number) {
+  const { rows } = await query(
+    `SELECT id, shift_id, shift_name, worker_id, worker_name, score,
+            rules_passed, rules_failed, proposed_at, status, reviewed_by,
+            reviewed_at, notes, created
+     FROM adempiere.rostering_agent_proposals
+     WHERE id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+export async function markProposalStatus(opts: {
+  id: number;
+  status: 'approved' | 'rejected';
+  reviewedBy: string;
+  notes?: string | null;
+}) {
+  const { rows } = await query(
+    `UPDATE adempiere.rostering_agent_proposals
+     SET status = $2,
+         reviewed_by = $3,
+         reviewed_at = NOW(),
+         notes = CASE
+           WHEN $4::text IS NULL OR $4 = '' THEN notes
+           WHEN notes IS NULL OR notes = '' THEN $4
+           ELSE notes || ' | ' || $4
+         END
+     WHERE id = $1 AND status = 'pending'
+     RETURNING *`,
+    [opts.id, opts.status, opts.reviewedBy, opts.notes ?? null],
+  );
+  return rows[0] ?? null;
+}
+
 export async function listPendingProposals(limit = 50, offset = 0) {
   const { rows } = await query(
     `SELECT id, shift_id, shift_name, worker_id, worker_name, score,
