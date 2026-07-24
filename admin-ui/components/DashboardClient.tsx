@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { AuditEntry, Gap, Horizon, Proposal, VacantShift } from '@/lib/ross';
+import { RecordPanel, type RecordTarget } from '@/components/RecordPanel';
 
 type Health = {
   status?: string;
@@ -63,6 +64,7 @@ export function DashboardClient() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [command, setCommand] = useState('');
+  const [record, setRecord] = useState<RecordTarget | null>(null);
   const [chat, setChat] = useState<ChatLine[]>([
     {
       id: 'welcome',
@@ -444,7 +446,21 @@ export function DashboardClient() {
                         {g.escalation_level}
                       </span>
                     </div>
-                    <h2>{g.shift_name || `Shift ${g.shift_id}`}</h2>
+                    <h2>
+                      <button
+                        type="button"
+                        className="linkish title"
+                        onClick={() =>
+                          setRecord({
+                            kind: 'shift',
+                            id: Number(g.shift_id),
+                            label: g.shift_name || undefined,
+                          })
+                        }
+                      >
+                        {g.shift_name || `Shift ${g.shift_id}`}
+                      </button>
+                    </h2>
                     <p className="reason">{g.reason}</p>
                     <div className="rules">
                       <span className="chip fail">gap</span>
@@ -470,7 +486,25 @@ export function DashboardClient() {
                     <span className="score">{p.score}/100</span>
                   </div>
                   <h2>
-                    {p.workerName} → {p.shiftName}
+                    <button
+                      type="button"
+                      className="linkish title"
+                      onClick={() =>
+                        setRecord({ kind: 'worker', id: p.workerId, label: p.workerName })
+                      }
+                    >
+                      {p.workerName}
+                    </button>
+                    <span className="arrow"> → </span>
+                    <button
+                      type="button"
+                      className="linkish title"
+                      onClick={() =>
+                        setRecord({ kind: 'shift', id: p.shiftId, label: p.shiftName })
+                      }
+                    >
+                      {p.shiftName}
+                    </button>
                   </h2>
                   <p className="reason">{reason}</p>
                   <div className="rules">
@@ -531,6 +565,13 @@ export function DashboardClient() {
         </div>
       </div>
 
+      <RecordPanel
+        target={record}
+        onClose={() => setRecord(null)}
+        onOpenWorker={(id, label) => setRecord({ kind: 'worker', id, label })}
+        onOpenShift={(id, label) => setRecord({ kind: 'shift', id, label })}
+      />
+
       <aside className="dash-rail">
         <section className="widget">
           <h3>Vacant · {horizonLabel}</h3>
@@ -540,7 +581,15 @@ export function DashboardClient() {
             <ul className="activity">
               {vacant.slice(0, 6).map((s) => (
                 <li key={s.id}>
-                  <span className="activity-action">{s.name || s.id}</span>
+                  <button
+                    type="button"
+                    className="linkish activity-action"
+                    onClick={() =>
+                      setRecord({ kind: 'shift', id: Number(s.id), label: s.name || undefined })
+                    }
+                  >
+                    {s.name || s.id}
+                  </button>
                   <span className="activity-time">{s.urgency ?? '—'}</span>
                 </li>
               ))}

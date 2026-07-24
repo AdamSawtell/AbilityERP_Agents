@@ -8,6 +8,7 @@ import { configRouter } from './routes/config';
 import { gapsRouter } from './routes/gaps';
 import { healthRouter } from './routes/health';
 import { pathwaysRouter } from './routes/pathways';
+import { profilesRouter } from './routes/profiles';
 import { shiftsRouter } from './routes/shifts';
 import { workerRouter } from './routes/worker';
 import { writeAudit } from './services/audit';
@@ -35,6 +36,7 @@ async function main(): Promise<void> {
     auditRouter,
     gapsRouter,
     configRouter,
+    profilesRouter,
   );
 
   app.use((_req, res) => {

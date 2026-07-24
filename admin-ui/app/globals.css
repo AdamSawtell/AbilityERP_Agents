@@ -411,6 +411,146 @@ button {
   accent-color: var(--accent);
 }
 
+.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.linkish:hover {
+  text-decoration: underline;
+}
+
+.linkish.title {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.bubble h2 .arrow {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.record-root {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.record-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(5, 10, 8, 0.55);
+  cursor: pointer;
+}
+
+.record-panel {
+  position: relative;
+  width: min(420px, 100%);
+  height: 100%;
+  background: var(--bg-elev);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 20px 18px 32px;
+  overflow-y: auto;
+  animation: slideIn 0.22s ease both;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(24px);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.record-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.record-head h2 {
+  margin: 4px 0 0;
+  font-size: 1.25rem;
+}
+
+.record-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.record-body section {
+  margin-bottom: 18px;
+}
+
+.record-body h3 {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.record-hero {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.record-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+  color: #062015;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+.record-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.record-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
