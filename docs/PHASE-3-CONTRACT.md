@@ -27,7 +27,7 @@
 |---|---|---|---|
 | **3a** | Auto-pilot threshold + bulk approve + summary | Config toggle + scan auto-write + bulk Approve + dashboard summary | **done** (`f4c1a9c`) |
 | **3b** | Pre-shift confirmation + worker chat | Pathways confirm + REQ/DEC poll + escalate/vacate + Confirms admin | **done** (`11cc4e5`) |
-| **3c** | Swap management | Detect / propose / execute swaps + Swaps admin | **done** (this slice) |
+| **3c** | Swap management | Detect / propose / execute swaps + Swaps admin | **done** (`0fdfb0d`) |
 | **3d** | Record panel | Slide-in shift + worker detail | **done** (`af393e3`) |
 | **3e** | Coverage heatmap | Sidebar heatmap | later |
 
