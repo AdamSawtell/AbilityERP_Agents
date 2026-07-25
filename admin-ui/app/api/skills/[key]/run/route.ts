@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { errorMessage } from '@/lib/db/pool';
 import { getSkill, isSkillRunnable } from '@/lib/services/skills';
+import { runResponseReviewCycle } from '@/lib/services/responseReviews';
 import { runConfirmCycle } from '@/lib/worker/confirm';
 import { runEmergencyScan } from '@/lib/worker/emergency';
 import { runLeaveCycle } from '@/lib/worker/leave';
@@ -33,6 +34,10 @@ export async function POST(_request: Request, context: Ctx) {
       case 'worker_matching':
       case 'gap_detector': {
         const summary = await runEmergencyScan('manual');
+        return NextResponse.json({ success: true, skillKey: key, result: summary });
+      }
+      case 'response_review': {
+        const summary = await runResponseReviewCycle('admin-ui');
         return NextResponse.json({ success: true, skillKey: key, result: summary });
       }
       case 'pre_shift_confirm': {

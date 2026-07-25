@@ -33,6 +33,11 @@ type DbSkill = {
 const LAST_RUN_ACTIONS: Record<string, string[]> = {
   shift_scanner: ['scan_run'],
   worker_matching: ['scan_run', 'match_auto_assigned', 'match_approved'],
+  response_review: [
+    'response_review_cycle',
+    'response_accepted',
+    'response_dismissed',
+  ],
   pathways_message: ['message_sent', 'cred_remind', 'training_requested'],
   gap_detector: ['gap_logged'],
   pre_shift_confirm: ['confirm_cycle'],

@@ -5,7 +5,11 @@ import { writeAudit } from '../services/audit';
 import { getConfig } from '../services/configStore';
 import { logGapFromMatch } from '../services/gapWriter';
 import { expireStaleProposals, upsertProposalsForShift } from '../services/proposals';
-import { isSkillChainEnabled } from '../services/skills';
+import {
+  runResponseReviewCycle,
+  type ResponseReviewCycleSummary,
+} from '../services/responseReviews';
+import { isSkillAutoEnabled, isSkillChainEnabled } from '../services/skills';
 
 export type ScanSummary = {
   startedAt: string;
@@ -17,6 +21,7 @@ export type ScanSummary = {
   gapsLogged: number;
   expiredProposals: number;
   autoAssignEnabled: boolean;
+  responseReview: ResponseReviewCycleSummary | null;
   errors: { shiftId: number; message: string }[];
 };
 
@@ -44,6 +49,7 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
     gapsLogged: 0,
     expiredProposals: 0,
     autoAssignEnabled: false,
+    responseReview: null,
     errors: [],
   };
 
@@ -51,6 +57,18 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
     const config = await getConfig();
     summary.autoAssignEnabled = config.auto_assign_enabled;
     summary.expiredProposals = await expireStaleProposals(2);
+
+    // SAW052 — process AbilityERP response-log queue before vacant matching
+    if (await isSkillAutoEnabled('response_review')) {
+      try {
+        summary.responseReview = await runResponseReviewCycle('Ross scan');
+      } catch (err) {
+        summary.errors.push({
+          shiftId: 0,
+          message: `response_review: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    }
 
     const matchingOn = await isSkillChainEnabled('worker_matching');
     const gapsOn = await isSkillChainEnabled('gap_detector');
@@ -174,11 +192,12 @@ export async function runEmergencyScan(trigger: 'cron' | 'manual' = 'manual'): P
         scanIntervalMinutes: config.scan_interval_minutes,
         autoAssignEnabled: config.auto_assign_enabled,
         autoApproveThreshold: config.auto_approve_threshold,
+        responseReview: summary.responseReview,
       }),
     });
 
     console.log(
-      `[ross] emergency scan (${trigger}): vacant=${summary.vacantCount} auto=${summary.autoAssigned} proposals=${summary.proposalsWritten} gaps=${summary.gapsLogged}`,
+      `[ross] emergency scan (${trigger}): vacant=${summary.vacantCount} auto=${summary.autoAssigned} proposals=${summary.proposalsWritten} gaps=${summary.gapsLogged} responses=${summary.responseReview?.openCount ?? 0}`,
     );
     return summary;
   } finally {
