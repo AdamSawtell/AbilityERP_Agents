@@ -1,16 +1,25 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import {
+  listLeaveReplacements,
+  listPendingOverlaps,
+} from '@/lib/services/leaveReplacer';
+import { getLastLeaveCycle } from '@/lib/worker/leave';
 
-export async function GET(req: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
   try {
-    const url = new URL(req.url);
-    const qs = url.searchParams.toString();
-    const data = await rossFetch(`/api/v1/leave${qs ? `?${qs}` : ''}`);
-    return NextResponse.json(data);
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status') || undefined;
+    const limit = Math.min(200, Math.max(1, Number(url.searchParams.get('limit')) || 50));
+    const [replacements, pending, lastCycle] = await Promise.all([
+      listLeaveReplacements(limit, status ?? undefined),
+      listPendingOverlaps(30),
+      Promise.resolve(getLastLeaveCycle()),
+    ]);
+    return NextResponse.json({ replacements, pending, lastCycle });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

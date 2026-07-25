@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { runConfirmCycle } from '@/lib/worker/confirm';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST() {
   try {
-    const data = await rossFetch('/api/v1/confirmations/run', { method: 'POST' });
-    return NextResponse.json(data);
+    const summary = await runConfirmCycle('manual');
+    return NextResponse.json({ success: true, summary });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    const message = errorMessage(err);
+    const status = message === 'confirm_cycle_busy' ? 409 : 502;
+    return NextResponse.json({ error: message }, { status });
   }
 }

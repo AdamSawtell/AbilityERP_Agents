@@ -1,23 +1,4 @@
-const baseUrl = process.env.ROSS_API_URL ?? 'http://127.0.0.1:3002';
-const apiKey = process.env.ROSS_API_KEY ?? '';
-
-export async function rossFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    cache: 'no-store',
-  });
-
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(body?.message || body?.error || `Ross API ${res.status}`);
-  }
-  return body as T;
-}
+/** Shared UI types for Ross admin. Browser BFF routes call lib/ directly. */
 
 export type Proposal = {
   id: number;

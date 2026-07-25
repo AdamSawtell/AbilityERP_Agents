@@ -1,21 +1,23 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { listAudit } from '@/lib/services/audit';
 
-export async function GET(req: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
   try {
-    const url = new URL(req.url);
-    const qs = new URLSearchParams();
-    for (const key of ['limit', 'offset', 'agent_type', 'action', 'since', 'until']) {
-      const v = url.searchParams.get(key);
-      if (v) qs.set(key, v);
-    }
-    if (!qs.has('limit')) qs.set('limit', '50');
-    const data = await rossFetch(`/api/v1/audit?${qs}`);
-    return NextResponse.json(data);
+    const url = new URL(request.url);
+    const opts = {
+      limit: Math.min(Number(url.searchParams.get('limit')) || 50, 500),
+      offset: Math.max(Number(url.searchParams.get('offset')) || 0, 0),
+      agentType: url.searchParams.get('agent_type') ?? undefined,
+      action: url.searchParams.get('action') ?? undefined,
+      since: url.searchParams.get('since') ?? undefined,
+      until: url.searchParams.get('until') ?? undefined,
+    };
+    const rows = await listAudit(opts);
+    return NextResponse.json({ entries: rows, ...opts });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

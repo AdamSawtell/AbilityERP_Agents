@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { getWorkerProfile } from '@/lib/db/queries/profiles';
 
-export async function GET(
-  _req: Request,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export const dynamic = 'force-dynamic';
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(_request: Request, context: Ctx) {
   try {
-    const { id } = await ctx.params;
-    const data = await rossFetch(`/api/v1/worker/${id}/profile`);
-    return NextResponse.json(data);
+    const { id: raw } = await context.params;
+    const workerId = Number(raw);
+    if (!Number.isFinite(workerId)) {
+      return NextResponse.json({ error: 'invalid_worker_id' }, { status: 400 });
+    }
+    const profile = await getWorkerProfile(workerId);
+    if (!profile) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    return NextResponse.json({ profile });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

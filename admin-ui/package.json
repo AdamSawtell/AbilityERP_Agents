@@ -1,26 +1,33 @@
 {
   "name": "ross-admin-ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Ross the Roster Agent admin UI (SAW043)",
+  "description": "Ross the Roster Agent — Amplify Next.js app (SAW048)",
   "scripts": {
     "dev": "next dev -p 3003",
     "build": "next build",
     "start": "next start -p 3003",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cron:emergency": "tsx scripts/run-emergency.ts",
+    "cron:planner": "tsx scripts/run-planner.ts",
+    "cron:leave": "tsx scripts/run-leave.ts"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "next": "^15.1.3",
+    "openai": "^4.104.0",
+    "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.10",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }
 }

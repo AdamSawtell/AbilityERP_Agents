@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { runEmergencyScan } from '@/lib/worker/emergency';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST() {
   try {
-    const data = await rossFetch('/api/v1/worker/run', { method: 'POST' });
-    return NextResponse.json(data);
+    const summary = await runEmergencyScan('manual');
+    return NextResponse.json({ success: true, summary });
   } catch (err) {
+    const message = errorMessage(err);
+    const status = message === 'scan_already_running' ? 409 : 502;
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
+      { error: message === 'scan_already_running' ? 'busy' : message },
+      { status },
     );
   }
 }

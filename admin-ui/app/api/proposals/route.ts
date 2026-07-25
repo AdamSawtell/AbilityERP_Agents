@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { listPendingProposals } from '@/lib/services/proposals';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const data = await rossFetch<{
-      proposals: unknown[];
-      pendingCount: number;
-    }>('/api/v1/proposals/pending?limit=50');
+    const data = await listPendingProposals(50, 0);
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

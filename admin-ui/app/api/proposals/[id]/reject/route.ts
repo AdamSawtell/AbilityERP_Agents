@@ -1,25 +1,45 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { writeAudit } from '@/lib/services/audit';
+import { markProposalStatus } from '@/lib/services/proposals';
 
-export async function POST(
-  req: Request,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export const dynamic = 'force-dynamic';
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function POST(request: Request, context: Ctx) {
   try {
-    const { id } = await ctx.params;
-    const body = await req.json().catch(() => ({}));
-    const data = await rossFetch(`/api/v1/proposals/${id}/reject`, {
-      method: 'POST',
-      body: JSON.stringify({
-        rejectedBy: body.rejectedBy || process.env.REVIEWER_NAME || 'Rostering Officer',
-        reason: body.reason ?? 'Rejected from Ross admin',
-      }),
+    const { id: raw } = await context.params;
+    const id = Number(raw);
+    const body = await request.json().catch(() => ({}));
+    const rejectedBy = String(body?.rejectedBy ?? body?.approvedBy ?? '').trim();
+    if (!Number.isFinite(id) || !rejectedBy) {
+      return NextResponse.json(
+        { error: 'invalid_body', message: 'rejectedBy required' },
+        { status: 400 },
+      );
+    }
+    const reason = typeof body?.reason === 'string' ? body.reason : null;
+    const marked = await markProposalStatus({
+      id,
+      status: 'rejected',
+      reviewedBy: rejectedBy,
+      notes: reason,
     });
-    return NextResponse.json(data);
+    if (!marked) {
+      return NextResponse.json({ error: 'not_found_or_not_pending' }, { status: 404 });
+    }
+    await writeAudit({
+      agentType: 'emergency',
+      action: 'match_rejected',
+      shiftId: Number(marked.shift_id),
+      workerId: Number(marked.worker_id),
+      score: Number(marked.score),
+      approvedBy: rejectedBy,
+      notes: reason ?? `proposal #${id} rejected`,
+    });
+    return NextResponse.json({ success: true, proposalId: id, status: 'rejected' });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

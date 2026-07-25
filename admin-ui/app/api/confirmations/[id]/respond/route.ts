@@ -1,25 +1,42 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { applyManualResponse } from '@/lib/services/confirmations';
 
-export async function POST(
-  req: Request,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export const dynamic = 'force-dynamic';
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function POST(request: Request, context: Ctx) {
   try {
-    const { id } = await ctx.params;
-    const body = await req.json().catch(() => ({}));
-    const data = await rossFetch(`/api/v1/confirmations/${id}/respond`, {
-      method: 'POST',
-      body: JSON.stringify({
-        response: body.response,
-        respondedBy: body.respondedBy || process.env.REVIEWER_NAME || 'Rostering Officer',
-      }),
+    const { id: raw } = await context.params;
+    const id = Number(raw);
+    const body = await request.json().catch(() => ({}));
+    const response = String(body?.response ?? '').toLowerCase();
+    const by = String(body?.respondedBy ?? body?.approvedBy ?? '').trim();
+    if (!Number.isFinite(id) || !by) {
+      return NextResponse.json(
+        { error: 'invalid_body', message: 'respondedBy required' },
+        { status: 400 },
+      );
+    }
+    if (response !== 'confirmed' && response !== 'declined') {
+      return NextResponse.json(
+        { error: 'invalid_body', message: "response must be 'confirmed' or 'declined'" },
+        { status: 400 },
+      );
+    }
+    const marked = await applyManualResponse(id, response, by);
+    if (!marked) return NextResponse.json({ error: 'not_found_or_not_open' }, { status: 404 });
+    return NextResponse.json({
+      success: true,
+      confirmation: {
+        id: Number(marked.id),
+        status: marked.status,
+        workerId: Number(marked.worker_id),
+        shiftId: Number(marked.shift_id),
+      },
     });
-    return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

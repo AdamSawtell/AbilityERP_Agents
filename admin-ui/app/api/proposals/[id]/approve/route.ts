@@ -1,25 +1,65 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { assignWorker } from '@/lib/db/queries/assign';
+import { writeAudit } from '@/lib/services/audit';
+import {
+  expireSiblingProposals,
+  getProposal,
+  markProposalStatus,
+} from '@/lib/services/proposals';
 
-export async function POST(
-  req: Request,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export const dynamic = 'force-dynamic';
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function POST(request: Request, context: Ctx) {
   try {
-    const { id } = await ctx.params;
-    const body = await req.json().catch(() => ({}));
-    const data = await rossFetch(`/api/v1/proposals/${id}/approve`, {
-      method: 'POST',
-      body: JSON.stringify({
-        approvedBy: body.approvedBy || process.env.REVIEWER_NAME || 'Rostering Officer',
-        notes: body.notes ?? null,
-      }),
+    const { id: raw } = await context.params;
+    const id = Number(raw);
+    const body = await request.json().catch(() => ({}));
+    const approvedBy = String(body?.approvedBy ?? '').trim();
+    if (!Number.isFinite(id) || !approvedBy) {
+      return NextResponse.json(
+        { error: 'invalid_body', message: 'approvedBy required' },
+        { status: 400 },
+      );
+    }
+
+    const proposal = await getProposal(id);
+    if (!proposal) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    if (proposal.status !== 'pending') {
+      return NextResponse.json({ error: 'not_pending', status: proposal.status }, { status: 409 });
+    }
+
+    const marked = await markProposalStatus({
+      id,
+      status: 'approved',
+      reviewedBy: approvedBy,
+      notes: typeof body?.notes === 'string' ? body.notes : null,
     });
-    return NextResponse.json(data);
+    if (!marked) return NextResponse.json({ error: 'not_pending' }, { status: 409 });
+
+    const assignResult = await assignWorker({
+      shiftId: Number(proposal.shift_id),
+      workerId: Number(proposal.worker_id),
+      approvedBy,
+      notes: typeof body?.notes === 'string' ? body.notes : `Approved proposal #${id}`,
+      notifyWorker: body?.notifyWorker !== false,
+    });
+
+    await writeAudit({
+      agentType: 'emergency',
+      action: 'match_approved',
+      shiftId: Number(proposal.shift_id),
+      workerId: Number(proposal.worker_id),
+      score: Number(proposal.score),
+      approvedBy,
+      notes: `proposal #${id}`,
+    });
+    await expireSiblingProposals(Number(proposal.shift_id), id);
+
+    return NextResponse.json({ proposalId: id, ...assignResult });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

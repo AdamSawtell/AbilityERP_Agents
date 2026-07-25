@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { runPlannerCycle } from '@/lib/worker/planner';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST() {
   try {
-    const data = await rossFetch('/api/v1/planner/run', { method: 'POST' });
-    return NextResponse.json(data);
+    const { summary, briefing } = await runPlannerCycle('manual');
+    return NextResponse.json({ success: true, summary, briefing });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    const message = errorMessage(err);
+    const status = message === 'planner_cycle_busy' ? 409 : 502;
+    return NextResponse.json({ error: message }, { status });
   }
 }

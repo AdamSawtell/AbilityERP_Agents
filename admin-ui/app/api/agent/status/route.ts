@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { isAiConfigured } from '@/lib/agent/chat';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  try {
-    const data = await rossFetch('/api/v1/agent/status');
-    return NextResponse.json(data);
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
-  }
+  return NextResponse.json({
+    aiEnabled: isAiConfigured(),
+    provider: 'openai',
+  });
 }

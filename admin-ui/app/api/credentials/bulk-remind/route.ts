@@ -1,24 +1,35 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { bulkRemindCredentials } from '@/lib/services/credentials';
 
-export async function POST(req: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const data = await rossFetch('/api/v1/credentials/bulk-remind', {
-      method: 'POST',
-      body: JSON.stringify({
-        remindedBy: body.remindedBy || process.env.REVIEWER_NAME || 'Rostering Officer',
-        withinDays: body.withinDays ?? 30,
-        credentialId: body.credentialId,
-        assignmentIds: body.assignmentIds,
-        limit: body.limit ?? 50,
-      }),
+    const body = await request.json().catch(() => ({}));
+    const remindedBy = String(body?.remindedBy ?? '').trim();
+    if (!remindedBy) {
+      return NextResponse.json(
+        { error: 'invalid_body', message: 'remindedBy required' },
+        { status: 400 },
+      );
+    }
+    const credentialId =
+      body?.credentialId != null && body.credentialId !== ''
+        ? Number(body.credentialId)
+        : null;
+    const assignmentIds = Array.isArray(body?.assignmentIds)
+      ? body.assignmentIds.map(Number).filter(Number.isFinite)
+      : undefined;
+    const result = await bulkRemindCredentials({
+      remindedBy,
+      withinDays: Number(body?.withinDays) || 30,
+      credentialId: Number.isFinite(credentialId as number) ? credentialId : null,
+      assignmentIds,
+      limit: Number(body?.limit) || 50,
     });
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, ...result });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

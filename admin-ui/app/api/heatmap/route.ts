@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { getCoverageHeatmap } from '@/lib/services/coverage';
 
-export async function GET(req: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
   try {
-    const url = new URL(req.url);
-    const horizon = url.searchParams.get('horizon') || 'period';
-    const data = await rossFetch(`/api/v1/coverage?horizon=${encodeURIComponent(horizon)}`);
+    const url = new URL(request.url);
+    const horizon = url.searchParams.get('horizon') ?? 'period';
+    const data = await getCoverageHeatmap(horizon);
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

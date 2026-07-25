@@ -1,35 +1,45 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { createManualSwap, listSwaps } from '@/lib/services/swaps';
+import { getLastSwapCycle } from '@/lib/worker/swap';
 
-export async function GET(req: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
   try {
-    const url = new URL(req.url);
-    const status = url.searchParams.get('status');
-    const limit = url.searchParams.get('limit') || '50';
-    const qs = new URLSearchParams({ limit });
-    if (status) qs.set('status', status);
-    const data = await rossFetch(`/api/v1/swaps?${qs}`);
-    return NextResponse.json(data);
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status') ?? undefined;
+    const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 200);
+    const swaps = await listSwaps({ status, limit });
+    return NextResponse.json({ swaps, lastCycle: getLastSwapCycle() });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const data = await rossFetch('/api/v1/swaps', {
-      method: 'POST',
-      body: JSON.stringify(body),
+    const body = await request.json().catch(() => ({}));
+    const shiftAId = Number(body?.shiftAId);
+    const shiftBId = Number(body?.shiftBId);
+    if (!Number.isFinite(shiftAId) || !Number.isFinite(shiftBId)) {
+      return NextResponse.json(
+        { error: 'invalid_body', message: 'shiftAId and shiftBId required' },
+        { status: 400 },
+      );
+    }
+    const id = await createManualSwap({
+      shiftAId,
+      shiftBId,
+      source: 'manual',
+      notify: body?.notify !== false,
     });
-    return NextResponse.json(data);
-  } catch (err) {
+    const swaps = await listSwaps({ status: 'proposed', limit: 50 });
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
+      { success: true, id, swap: swaps.find((s) => s.id === id) },
+      { status: 201 },
     );
+  } catch (err) {
+    return NextResponse.json({ error: errorMessage(err) }, { status: 400 });
   }
 }

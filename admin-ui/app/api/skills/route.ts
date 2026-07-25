@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { listSkills } from '@/lib/services/skills';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const data = await rossFetch('/api/v1/skills');
-    return NextResponse.json(data);
+    const skills = await listSkills();
+    return NextResponse.json({ skills });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }

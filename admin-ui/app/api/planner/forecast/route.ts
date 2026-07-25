@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import { rossFetch } from '@/lib/ross';
+import { errorMessage } from '@/lib/db/pool';
+import { buildNextPeriodForecast } from '@/lib/services/forecast';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const data = await rossFetch('/api/v1/planner/forecast');
-    return NextResponse.json(data);
+    const forecast = await buildNextPeriodForecast();
+    return NextResponse.json({ forecast });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
   }
 }
