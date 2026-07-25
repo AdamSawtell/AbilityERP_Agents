@@ -1,4 +1,5 @@
 import { query } from '../pool';
+import { rosteredShiftZoomUrl } from '../../idempiere/zoom';
 import { loadShiftContext } from './shifts';
 
 function initials(name: string): string {
@@ -245,6 +246,14 @@ export async function getShiftDetail(shiftId: number) {
   const end = new Date(ctx.endTs);
   const hoursUntil = (start.getTime() - Date.now()) / 3_600_000;
 
+  const uuRow = await query<{ shift_uu: string | null }>(
+    `SELECT NULLIF(TRIM(aberp_rostered_shift_uu), '') AS shift_uu
+     FROM adempiere.aberp_rostered_shift
+     WHERE aberp_rostered_shift_id = $1`,
+    [shiftId],
+  );
+  const shiftUu = uuRow.rows[0]?.shift_uu ?? null;
+
   return {
     shiftId: ctx.shiftId,
     name: ctx.name,
@@ -262,6 +271,8 @@ export async function getShiftDetail(shiftId: number) {
     credentialNames: ctx.credentialNames,
     genderIds: ctx.genderIds,
     hoursUntilShift: Math.round(hoursUntil * 10) / 10,
+    shiftUu,
+    erpUrl: rosteredShiftZoomUrl({ shiftId: ctx.shiftId, shiftUu }),
     receivers,
     staffLines: staff.rows.map((s) => ({
       workerId: s.staff_id != null ? Number(s.staff_id) : null,

@@ -17,7 +17,7 @@ applications:
             - env | grep -e ROSS_API_KEY -e CRON_SECRET -e ROSTER_BOT_API_KEY >> .env.production || true
             - env | grep -e AUTO_APPROVE_THRESHOLD -e SCAN_INTERVAL_MINUTES -e PRE_SHIFT_CONFIRM_HOURS -e ESCALATION_HOURS_BEFORE_SHIFT >> .env.production || true
             - env | grep -e OPENAI_API_KEY -e OPENAI_MODEL -e REVIEWER_NAME -e ROSS_SYSTEM_PROMPT >> .env.production || true
-            - env | grep -e NEXT_PUBLIC_ >> .env.production || true
+            - env | grep -e NEXT_PUBLIC_ -e IDEMPIERE_WEBUI_URL >> .env.production || true
             - echo '--- .env.production keys (redacted) ---'
             - sed 's/=.*/=***/' .env.production || true
             - npm run build

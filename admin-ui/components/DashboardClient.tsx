@@ -665,8 +665,23 @@ export function DashboardClient() {
                   ) : null}
 
                   <p className="shift-ref">
-                    Shift #{p.shiftId}
-                    {p.shiftName ? ` · ${p.shiftName}` : ''}
+                    {p.shift?.erpUrl ? (
+                      <a
+                        className="erp-link"
+                        href={p.shift.erpUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open this rostered shift in AbilityERP (iDempiere)"
+                      >
+                        Open in AbilityERP ↗
+                      </a>
+                    ) : (
+                      <span>Shift #{p.shiftId}</span>
+                    )}
+                    <span className="id-tag id-tag-inline"> · #{p.shiftId}</span>
+                    {p.shiftName ? (
+                      <span className="shift-ref-name"> · {p.shiftName}</span>
+                    ) : null}
                     <span className="id-tag id-tag-inline"> · proposal #{p.id}</span>
                   </p>
 

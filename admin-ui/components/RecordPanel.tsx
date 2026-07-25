@@ -37,6 +37,8 @@ type ShiftDetail = {
   transportRequired?: boolean;
   credentialNames?: string[];
   hoursUntilShift?: number;
+  shiftUu?: string | null;
+  erpUrl?: string | null;
   receivers?: { id: number; name: string }[];
   staffLines?: {
     workerId: number | null;
@@ -229,6 +231,21 @@ export function RecordPanel({ target, onClose, onOpenWorker, onOpenShift }: Prop
                   <dt>Shift ID</dt>
                   <dd className="id-tag">{shift.shiftId}</dd>
                 </div>
+                {shift.erpUrl ? (
+                  <div>
+                    <dt>AbilityERP</dt>
+                    <dd>
+                      <a
+                        className="erp-link"
+                        href={shift.erpUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open rostered shift ↗
+                      </a>
+                    </dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt>Starts</dt>
                   <dd style={{ fontSize: '0.95rem' }}>

@@ -9,6 +9,8 @@ export type ProposalShiftFacts = {
   assignedStaff: number | null;
   urgency: 'critical' | 'high' | 'normal' | null;
   hoursUntilShift: number | null;
+  shiftUu: string | null;
+  erpUrl: string | null;
 };
 
 export type Proposal = {

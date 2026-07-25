@@ -1,5 +1,6 @@
 import { query } from '../db/pool';
 import type { MatchCandidate } from '../engine/types';
+import { rosteredShiftZoomUrl } from '../idempiere/zoom';
 
 export async function expireStaleProposals(maxAgeHours = 2): Promise<number> {
   const { rowCount } = await query(
@@ -116,6 +117,7 @@ function mapProposalRow(r: {
   client_names?: string | null;
   required_staff?: number | string | null;
   assigned_staff?: number | string | null;
+  shift_uu?: string | null;
 }) {
   const start =
     r.shift_start != null ? new Date(r.shift_start) : null;
@@ -124,10 +126,12 @@ function mapProposalRow(r: {
     start && !Number.isNaN(start.getTime())
       ? Math.round(((start.getTime() - Date.now()) / 3_600_000) * 10) / 10
       : null;
+  const shiftId = Number(r.shift_id);
+  const shiftUu = r.shift_uu != null && String(r.shift_uu).trim() ? String(r.shift_uu).trim() : null;
 
   return {
     id: Number(r.id),
-    shiftId: Number(r.shift_id),
+    shiftId,
     shiftName: r.shift_name ?? '',
     workerId: Number(r.worker_id),
     workerName: r.worker_name ?? '',
@@ -155,6 +159,8 @@ function mapProposalRow(r: {
           : null,
       urgency: urgencyFromHours(hoursUntil),
       hoursUntilShift: hoursUntil,
+      shiftUu,
+      erpUrl: rosteredShiftZoomUrl({ shiftId, shiftUu }),
     },
     rulesPassed: r.rules_passed as {
       reason?: string;
@@ -173,6 +179,7 @@ export async function listPendingProposals(limit = 50, offset = 0) {
         p.reviewed_at, p.notes, p.created,
         COALESCE(s.starttime, s.startdate) AS shift_start,
         COALESCE(s.endtime, s.enddate, s.starttime, s.startdate) AS shift_end,
+        NULLIF(TRIM(s.aberp_rostered_shift_uu), '') AS shift_uu,
         ml.name AS location_name,
         s.aberp_no_of_staff AS required_staff,
         COALESCE(staff_counts.cnt, 0)::int AS assigned_staff,
