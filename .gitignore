@@ -5,6 +5,10 @@ dist/
 .env.amplify*
 docs/AMPLIFY-SAGE-HANDOFF.md
 docs/AMPLIFY-SAGE-HANDOFF*.md
+docs/AMPLIFY-HERMES-HANDOFF.md
+docs/AMPLIFY-HERMES-HANDOFF*.md
+docs/AMPLIFY-DEPLOY-HANDOFF.md
+docs/AMPLIFY-*-HANDOFF.md
 *.log
 .DS_Store
 /coverage/

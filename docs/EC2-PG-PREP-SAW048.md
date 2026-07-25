@@ -23,8 +23,8 @@ Scripts (idempotent): `admin-ui/scripts/ec2-ross-agent-prep.sh`, `ec2-ross-agent
    - Metadata id: `sg-0ee0cefcc80998823` (confirm in console — may be different AWS account than local CLI)  
    - VPC `vpc-093603f908654f4a8`
 2. After Amplify NAT known: replace `0.0.0.0/0` in `pg_hba` with those CIDRs
-3. Put `DB_PASSWORD` only in Amplify env (see gitignored `docs/AMPLIFY-SAGE-HANDOFF.md`)
+3. Put `DB_PASSWORD` only in Amplify env (see gitignored Hermes handoff)
 
 ## Amplify next step
 
-Give Sage/Cursor the file **`docs/AMPLIFY-SAGE-HANDOFF.md`** (local, gitignored, includes secrets).
+Point Hermes at **`docs/AMPLIFY-HERMES-HANDOFF.md`** (local, gitignored, includes secrets + full deploy brief).
