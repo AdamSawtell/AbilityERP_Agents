@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveActor } from '@/lib/actor';
 import { errorMessage } from '@/lib/db/pool';
 import { applyManualResponse } from '@/lib/services/confirmations';
 
@@ -10,12 +11,12 @@ export async function POST(request: Request, context: Ctx) {
   try {
     const { id: raw } = await context.params;
     const id = Number(raw);
-    const body = await request.json().catch(() => ({}));
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const response = String(body?.response ?? '').toLowerCase();
-    const by = String(body?.respondedBy ?? body?.approvedBy ?? '').trim();
-    if (!Number.isFinite(id) || !by) {
+    const by = resolveActor(body, 'respondedBy', 'approvedBy');
+    if (!Number.isFinite(id)) {
       return NextResponse.json(
-        { error: 'invalid_body', message: 'respondedBy required' },
+        { error: 'invalid_body', message: 'id required' },
         { status: 400 },
       );
     }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveActor } from '@/lib/actor';
 import { errorMessage } from '@/lib/db/pool';
 import { writeAudit } from '@/lib/services/audit';
 import { getConfig, updateConfig, type ConfigPatch } from '@/lib/services/configStore';
@@ -16,14 +17,8 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const updatedBy = String(body?.updatedBy ?? '').trim();
-    if (!updatedBy) {
-      return NextResponse.json(
-        { error: 'invalid_body', message: 'updatedBy required' },
-        { status: 400 },
-      );
-    }
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const updatedBy = resolveActor(body, 'updatedBy');
     const patch: ConfigPatch = {};
     const keys: (keyof ConfigPatch)[] = [
       'auto_approve_threshold',

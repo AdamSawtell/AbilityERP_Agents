@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveActor } from '@/lib/actor';
 import { errorMessage } from '@/lib/db/pool';
 import { writeAudit } from '@/lib/services/audit';
 import { requestTraining } from '@/lib/services/gaps';
@@ -11,11 +12,11 @@ export async function POST(request: Request, context: Ctx) {
   try {
     const { id: raw } = await context.params;
     const id = Number(raw);
-    const body = await request.json().catch(() => ({}));
-    const requestedBy = String(body?.requestedBy ?? '').trim();
-    if (!Number.isFinite(id) || !requestedBy) {
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const requestedBy = resolveActor(body, 'requestedBy', 'approvedBy');
+    if (!Number.isFinite(id)) {
       return NextResponse.json(
-        { error: 'invalid_body', message: 'requestedBy required' },
+        { error: 'invalid_body', message: 'id required' },
         { status: 400 },
       );
     }

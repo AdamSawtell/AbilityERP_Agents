@@ -58,7 +58,7 @@ export default function SwapsPage() {
       const res = await fetch(`/api/swaps/${id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ approvedBy: 'admin-ui' }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || json.message || 'Approve failed');
@@ -77,7 +77,7 @@ export default function SwapsPage() {
       const res = await fetch(`/api/swaps/${id}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ rejectedBy: 'admin-ui' }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || json.message || 'Reject failed');

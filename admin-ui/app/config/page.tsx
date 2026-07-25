@@ -64,6 +64,7 @@ export default function ConfigPage() {
     setSavedAt(null);
     try {
       const body = {
+        updatedBy: 'admin-ui',
         auto_approve_threshold: Number(form.auto_approve_threshold),
         scan_interval_minutes: Number(form.scan_interval_minutes),
         pre_shift_confirm_hours: Number(form.pre_shift_confirm_hours),

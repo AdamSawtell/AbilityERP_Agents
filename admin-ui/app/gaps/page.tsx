@@ -50,7 +50,7 @@ export default function GapsPage() {
       const res = await fetch(`/api/gaps/${gapId}/training-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bulkSameCredential: bulk }),
+        body: JSON.stringify({ bulkSameCredential: bulk, requestedBy: 'admin-ui' }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || json.message || 'Request failed');
@@ -74,7 +74,7 @@ export default function GapsPage() {
       const res = await fetch(`/api/gaps/${gapId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ resolvedBy: 'admin-ui' }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || json.message || 'Resolve failed');

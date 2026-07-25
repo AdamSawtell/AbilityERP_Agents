@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveActor } from '@/lib/actor';
 import { errorMessage } from '@/lib/db/pool';
 import { bulkRemindCredentials } from '@/lib/services/credentials';
 
@@ -6,14 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const remindedBy = String(body?.remindedBy ?? '').trim();
-    if (!remindedBy) {
-      return NextResponse.json(
-        { error: 'invalid_body', message: 'remindedBy required' },
-        { status: 400 },
-      );
-    }
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const remindedBy = resolveActor(body, 'remindedBy', 'approvedBy');
     const credentialId =
       body?.credentialId != null && body.credentialId !== ''
         ? Number(body.credentialId)

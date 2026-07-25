@@ -58,7 +58,7 @@ export default function ConfirmsPage() {
       const res = await fetch(`/api/confirmations/${id}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ response }),
+        body: JSON.stringify({ response, respondedBy: 'admin-ui' }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || json.message || 'Respond failed');

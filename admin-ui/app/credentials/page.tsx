@@ -42,6 +42,7 @@ export default function CredentialsPage() {
           withinDays,
           credentialId: group?.credentialId,
           limit: 50,
+          remindedBy: 'admin-ui',
         }),
       });
       const json = await res.json();
