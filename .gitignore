@@ -2,6 +2,8 @@ node_modules/
 dist/
 .env
 .env.local
+.env.production
+.env.production.local
 .env.amplify*
 docs/AMPLIFY-SAGE-HANDOFF.md
 docs/AMPLIFY-SAGE-HANDOFF*.md

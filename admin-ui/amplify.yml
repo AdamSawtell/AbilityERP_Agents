@@ -1,0 +1,31 @@
+# SAW048 — Amplify Hosting (app root = admin-ui)
+# Console env vars are NOT injected into Next.js SSR/Edge at runtime by default.
+# AWS docs: write them into .env.production before `next build`.
+# https://docs.aws.amazon.com/amplify/latest/userguide/ssr-environment-variables.html
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        # Clear any stale file from cache
+        - rm -f .env.production
+        # Inject Amplify branch env → Next.js (Node API routes + Edge middleware)
+        - env | grep -e DB_HOST -e DB_PORT -e DB_NAME -e DB_USER -e DB_PASSWORD -e DB_SSL -e DB_SSL_REJECT_UNAUTHORIZED -e DB_POOL_MAX >> .env.production || true
+        - env | grep -e ROSS_API_KEY -e CRON_SECRET -e ROSTER_BOT_API_KEY >> .env.production || true
+        - env | grep -e AUTO_APPROVE_THRESHOLD -e SCAN_INTERVAL_MINUTES -e PRE_SHIFT_CONFIRM_HOURS -e ESCALATION_HOURS_BEFORE_SHIFT >> .env.production || true
+        - env | grep -e OPENAI_API_KEY -e OPENAI_MODEL -e REVIEWER_NAME -e ROSS_SYSTEM_PROMPT >> .env.production || true
+        - env | grep -e NEXT_PUBLIC_ >> .env.production || true
+        - echo "--- .env.production keys (values redacted) ---"
+        - sed 's/=.*/=***/' .env.production || true
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
