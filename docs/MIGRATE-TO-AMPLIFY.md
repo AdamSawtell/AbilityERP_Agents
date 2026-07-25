@@ -1,10 +1,11 @@
 ---
 migration: ross-to-amplify
-status: code-complete
+status: cutover-complete
 ticket: SAW048
 from: "EC2-hosted Express + Next.js (SAW042–047)"
 to: "Standalone Amplify Next.js app — all config self-contained"
 principle: "EC2 is the operational DB only. Zero agent compute on the ERP server."
+cutover: "2026-07-26 — PM2 ross-roster + ross-admin stopped (saved dump); ability-erp-api left online; Amplify ross-admin primary"
 ---
 
 # Ross → Amplify Migration (SAW048)
