@@ -912,6 +912,13 @@ button {
   font-family: var(--mono);
   font-weight: 600;
   color: var(--accent);
+  font-size: 1.05rem;
+}
+
+.score-den {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.85em;
 }
 
 .bubble h2 {
@@ -919,10 +926,139 @@ button {
   font-size: 1.15rem;
 }
 
+.propose-title {
+  line-height: 1.35;
+}
+
+.propose-for {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.shift-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--line);
+}
+
+.shift-facts dt {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.shift-facts dd {
+  margin: 3px 0 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.shift-facts .fact-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 400;
+}
+
+.why-match {
+  margin: 0 0 12px;
+}
+
+.why-label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.why-match ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.why-match li {
+  font-size: 0.82rem;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 190, 140, 0.35);
+  color: #b8f0d4;
+  background: rgba(61, 190, 140, 0.08);
+}
+
+.why-match li.why-fail {
+  border-color: rgba(224, 107, 107, 0.45);
+  color: #ffc4c4;
+  background: rgba(224, 107, 107, 0.08);
+}
+
+.why-pts {
+  margin-left: 6px;
+  font-family: var(--mono);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.shift-ref {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.urgency-pill {
+  margin-left: 8px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+
+.urgency-pill.critical,
+.urgency-text.critical {
+  color: #ffc4c4;
+  border-color: rgba(224, 107, 107, 0.45);
+}
+
+.urgency-pill.high,
+.urgency-text.high {
+  color: #f0d2a8;
+}
+
+.vacant-line {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
 .bubble .reason {
   color: var(--muted);
   line-height: 1.45;
   margin: 0 0 14px;
+}
+
+@media (max-width: 560px) {
+  .shift-facts {
+    grid-template-columns: 1fr;
+  }
 }
 
 .rules {

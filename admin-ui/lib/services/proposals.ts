@@ -92,6 +92,13 @@ export async function markProposalStatus(opts: {
   return rows[0] ?? null;
 }
 
+function urgencyFromHours(hours: number | null): 'critical' | 'high' | 'normal' | null {
+  if (hours == null || !Number.isFinite(hours)) return null;
+  if (hours < 4) return 'critical';
+  if (hours < 24) return 'high';
+  return 'normal';
+}
+
 function mapProposalRow(r: {
   id: number | string;
   shift_id: number | string;
@@ -103,32 +110,96 @@ function mapProposalRow(r: {
   rules_failed: unknown;
   proposed_at: Date | string;
   status: string;
+  shift_start?: Date | string | null;
+  shift_end?: Date | string | null;
+  location_name?: string | null;
+  client_names?: string | null;
+  required_staff?: number | string | null;
+  assigned_staff?: number | string | null;
 }) {
+  const start =
+    r.shift_start != null ? new Date(r.shift_start) : null;
+  const end = r.shift_end != null ? new Date(r.shift_end) : null;
+  const hoursUntil =
+    start && !Number.isNaN(start.getTime())
+      ? Math.round(((start.getTime() - Date.now()) / 3_600_000) * 10) / 10
+      : null;
+
   return {
     id: Number(r.id),
     shiftId: Number(r.shift_id),
-    shiftName: r.shift_name,
+    shiftName: r.shift_name ?? '',
     workerId: Number(r.worker_id),
-    workerName: r.worker_name,
+    workerName: r.worker_name ?? '',
     score: Number(r.score),
     isAutoApproved: Boolean(
       (r.rules_passed as { isAutoApproved?: boolean } | null)?.isAutoApproved,
     ),
-    proposedAt: r.proposed_at,
+    proposedAt:
+      typeof r.proposed_at === 'string'
+        ? r.proposed_at
+        : r.proposed_at?.toISOString?.() ?? String(r.proposed_at),
     status: r.status,
-    rulesPassed: r.rules_passed,
+    shift: {
+      startTime: start && !Number.isNaN(start.getTime()) ? start.toISOString() : null,
+      endTime: end && !Number.isNaN(end.getTime()) ? end.toISOString() : null,
+      location: r.location_name ?? null,
+      clients: r.client_names ?? null,
+      requiredStaff:
+        r.required_staff != null && Number.isFinite(Number(r.required_staff))
+          ? Number(r.required_staff)
+          : null,
+      assignedStaff:
+        r.assigned_staff != null && Number.isFinite(Number(r.assigned_staff))
+          ? Number(r.assigned_staff)
+          : null,
+      urgency: urgencyFromHours(hoursUntil),
+      hoursUntilShift: hoursUntil,
+    },
+    rulesPassed: r.rules_passed as {
+      reason?: string;
+      hard?: { rule: string; pass: boolean; detail?: string }[];
+      soft?: { rule: string; pass: boolean; weight: number; earned: number }[];
+    } | undefined,
     rulesFailed: r.rules_failed,
   };
 }
 
 export async function listPendingProposals(limit = 50, offset = 0) {
   const { rows } = await query(
-    `SELECT id, shift_id, shift_name, worker_id, worker_name, score,
-            rules_passed, rules_failed, proposed_at, status, reviewed_by,
-            reviewed_at, notes, created
-     FROM adempiere.rostering_agent_proposals
-     WHERE status = 'pending'
-     ORDER BY proposed_at DESC
+    `SELECT
+        p.id, p.shift_id, p.shift_name, p.worker_id, p.worker_name, p.score,
+        p.rules_passed, p.rules_failed, p.proposed_at, p.status, p.reviewed_by,
+        p.reviewed_at, p.notes, p.created,
+        COALESCE(s.starttime, s.startdate) AS shift_start,
+        COALESCE(s.endtime, s.enddate, s.starttime, s.startdate) AS shift_end,
+        ml.name AS location_name,
+        s.aberp_no_of_staff AS required_staff,
+        COALESCE(staff_counts.cnt, 0)::int AS assigned_staff,
+        clients.client_names
+     FROM adempiere.rostering_agent_proposals p
+     LEFT JOIN adempiere.aberp_rostered_shift s
+       ON s.aberp_rostered_shift_id = p.shift_id
+     LEFT JOIN adempiere.aberp_masterlocation ml
+       ON ml.aberp_masterlocation_id = s.aberp_masterlocation_id
+     LEFT JOIN (
+       SELECT aberp_rostered_shift_id, COUNT(*) AS cnt
+       FROM adempiere.aberp_rostered_shiftstaff
+       WHERE isactive = 'Y'
+         AND c_bpartner_staff_id IS NOT NULL
+         AND COALESCE(aberp_requestshift, 'N') <> 'Y'
+         AND COALESCE(aberp_declineshift, 'N') <> 'Y'
+       GROUP BY aberp_rostered_shift_id
+     ) staff_counts ON staff_counts.aberp_rostered_shift_id = p.shift_id
+     LEFT JOIN LATERAL (
+       SELECT string_agg(bp.name, ', ' ORDER BY bp.name) AS client_names
+       FROM adempiere.aberp_rostered_shiftreceiver sr
+       JOIN adempiere.c_bpartner bp ON bp.c_bpartner_id = sr.c_bpartner_id
+       WHERE sr.aberp_rostered_shift_id = p.shift_id
+         AND sr.isactive = 'Y'
+     ) clients ON TRUE
+     WHERE p.status = 'pending'
+     ORDER BY p.proposed_at DESC
      LIMIT $1 OFFSET $2`,
     [limit, offset],
   );

@@ -1,5 +1,16 @@
 /** Shared UI types for Ross admin. Browser BFF routes call lib/ directly. */
 
+export type ProposalShiftFacts = {
+  startTime: string | null;
+  endTime: string | null;
+  location: string | null;
+  clients: string | null;
+  requiredStaff: number | null;
+  assignedStaff: number | null;
+  urgency: 'critical' | 'high' | 'normal' | null;
+  hoursUntilShift: number | null;
+};
+
 export type Proposal = {
   id: number;
   shiftId: number;
@@ -10,6 +21,7 @@ export type Proposal = {
   isAutoApproved: boolean;
   proposedAt: string;
   status: string;
+  shift?: ProposalShiftFacts;
   rulesPassed?: {
     reason?: string;
     hard?: { rule: string; pass: boolean; detail?: string }[];
@@ -98,9 +110,11 @@ export type VacantShift = {
   name: string;
   startTime?: string;
   endTime?: string;
+  location?: string | null;
   urgency?: string;
   requiredStaff?: number | null;
   assignedStaff?: number;
+  hoursUntilShift?: number;
 };
 
 export type Horizon = 'today' | 'period' | 'next';

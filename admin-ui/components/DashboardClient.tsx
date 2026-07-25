@@ -12,6 +12,12 @@ import type {
 } from '@/lib/ross';
 import { CoverageHeatmap } from '@/components/CoverageHeatmap';
 import { RecordPanel, type RecordTarget } from '@/components/RecordPanel';
+import {
+  formatShiftWhen,
+  ruleLabel,
+  shortShiftTitle,
+  staffingLabel,
+} from '@/lib/format/shiftDisplay';
 
 type Health = {
   status?: string;
@@ -565,22 +571,31 @@ export function DashboardClient() {
               }
 
               const p = item.proposal;
-              const soft = p.rulesPassed?.soft ?? [];
-              const hard = p.rulesPassed?.hard ?? [];
-              const reason =
-                p.rulesPassed?.reason ||
-                `${p.workerName} is a ${p.score}/100 match for ${p.shiftName}`;
+              const soft = [...(p.rulesPassed?.soft ?? [])]
+                .filter((r) => r.earned > 0)
+                .sort((a, b) => b.earned - a.earned)
+                .slice(0, 3);
+              const hardFails = (p.rulesPassed?.hard ?? []).filter((r) => !r.pass);
+              const when = formatShiftWhen(p.shift?.startTime, p.shift?.endTime);
+              const title = shortShiftTitle(p.shiftName, p.shift?.clients);
               const alts = (alternatesByShift.get(p.shiftId) ?? []).filter((a) => a.id !== p.id);
+              const urgency = p.shift?.urgency;
               return (
                 <article key={`p-${p.id}`} className="bubble">
                   <div className="bubble-meta">
                     <span>
-                      Ross · proposal #{p.id}
-                      <span className="id-tag id-tag-inline"> · shift #{p.shiftId}</span>
+                      Propose
+                      {urgency && urgency !== 'normal' ? (
+                        <span className={`urgency-pill ${urgency}`}> {urgency}</span>
+                      ) : null}
                     </span>
-                    <span className="score">{p.score}/100</span>
+                    <span className="score" title="Match score">
+                      {p.score}
+                      <span className="score-den">/100</span>
+                    </span>
                   </div>
-                  <h2>
+
+                  <h2 className="propose-title">
                     <button
                       type="button"
                       className="linkish title"
@@ -590,7 +605,7 @@ export function DashboardClient() {
                     >
                       {p.workerName}
                     </button>
-                    <span className="arrow"> → </span>
+                    <span className="propose-for"> for </span>
                     <button
                       type="button"
                       className="linkish title"
@@ -598,29 +613,66 @@ export function DashboardClient() {
                         setRecord({ kind: 'shift', id: p.shiftId, label: p.shiftName })
                       }
                     >
-                      {p.shiftName}
-                      <span className="id-tag id-tag-inline">#{p.shiftId}</span>
+                      {title}
                     </button>
                   </h2>
-                  <p className="reason">{reason}</p>
-                  <div className="rules">
-                    {hard.slice(0, 5).map((r) => (
-                      <span key={r.rule} className={`chip ${r.pass ? 'pass' : 'fail'}`}>
-                        {r.rule}
-                      </span>
-                    ))}
-                    {soft
-                      .filter((r) => r.earned > 0)
-                      .slice(0, 4)
-                      .map((r) => (
-                        <span key={r.rule} className="chip pass">
-                          {r.rule} {r.earned}
+
+                  <dl className="shift-facts">
+                    <div>
+                      <dt>When</dt>
+                      <dd>
+                        <strong>{when.day}</strong>
+                        <span className="fact-sub">
+                          {when.time}
+                          {when.relative ? ` · ${when.relative}` : ''}
                         </span>
-                      ))}
-                  </div>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Where</dt>
+                      <dd>{p.shift?.location || 'Location not set'}</dd>
+                    </div>
+                    <div>
+                      <dt>Client</dt>
+                      <dd>{p.shift?.clients || title}</dd>
+                    </div>
+                    <div>
+                      <dt>Staff</dt>
+                      <dd>
+                        {staffingLabel(p.shift?.assignedStaff, p.shift?.requiredStaff)}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {soft.length > 0 || hardFails.length > 0 ? (
+                    <div className="why-match">
+                      <span className="why-label">Why this match</span>
+                      <ul>
+                        {soft.map((r) => (
+                          <li key={r.rule}>
+                            {ruleLabel(r.rule)}
+                            <span className="why-pts">+{r.earned}</span>
+                          </li>
+                        ))}
+                        {hardFails.map((r) => (
+                          <li key={r.rule} className="why-fail">
+                            {ruleLabel(r.rule)}
+                            {r.detail ? ` — ${r.detail}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  <p className="shift-ref">
+                    Shift #{p.shiftId}
+                    {p.shiftName ? ` · ${p.shiftName}` : ''}
+                    <span className="id-tag id-tag-inline"> · proposal #{p.id}</span>
+                  </p>
+
                   {alts.length > 0 ? (
                     <div className="alts">
-                      <span className="alts-label">Alternates</span>
+                      <span className="alts-label">Also consider</span>
                       {alts.map((a) => (
                         <button
                           key={a.id}
@@ -629,11 +681,11 @@ export function DashboardClient() {
                           onClick={() =>
                             pushChat(
                               'ross',
-                              `Alternate #${a.id}: ${a.workerName} at ${a.score}/100 for ${a.shiftName}. Scroll to that card or Approve from there.`,
+                              `${a.workerName} scores ${a.score}/100 for the same shift (proposal #${a.id}).`,
                             )
                           }
                         >
-                          {a.workerName} {a.score}
+                          {a.workerName} · {a.score}
                         </button>
                       ))}
                     </div>
@@ -715,20 +767,29 @@ export function DashboardClient() {
             <p className="widget-foot">No vacant shifts in this horizon.</p>
           ) : (
             <ul className="activity">
-              {vacant.slice(0, 6).map((s) => (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    className="linkish activity-action"
-                    onClick={() =>
-                      setRecord({ kind: 'shift', id: Number(s.id), label: s.name || undefined })
-                    }
-                  >
-                    <span className="id-tag">#{s.id}</span> {s.name || 'Shift'}
-                  </button>
-                  <span className="activity-time">{s.urgency ?? '—'}</span>
-                </li>
-              ))}
+              {vacant.slice(0, 6).map((s) => {
+                const when = formatShiftWhen(s.startTime, s.endTime);
+                return (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      className="linkish activity-action"
+                      onClick={() =>
+                        setRecord({ kind: 'shift', id: Number(s.id), label: s.name || undefined })
+                      }
+                    >
+                      <strong>{shortShiftTitle(s.name)}</strong>
+                      <span className="vacant-line">
+                        {when.day} · {when.time}
+                        {s.location ? ` · ${s.location}` : ''}
+                      </span>
+                    </button>
+                    <span className={`activity-time urgency-text ${s.urgency ?? ''}`}>
+                      {when.relative || s.urgency || '—'}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
           <p className="widget-foot">{vacant.length} vacant · horizon `{horizon}`</p>
