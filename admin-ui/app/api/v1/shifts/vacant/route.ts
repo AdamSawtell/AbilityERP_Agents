@@ -1,23 +1,9 @@
 import { NextResponse } from 'next/server';
 import { errorMessage } from '@/lib/db/pool';
+import { listVacantShifts, mapVacantShift } from '@/lib/db/queries/shifts';
+import { horizonWindow } from '@/lib/horizon';
 
 export const dynamic = 'force-dynamic';
-import { listVacantShifts, mapVacantShift } from '@/lib/db/queries/shifts';
-
-function horizonWindow(horizon: string): { start: Date; end: Date } {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  if (horizon === 'today') {
-    end.setDate(end.getDate() + 2);
-  } else if (horizon === 'next') {
-    start.setDate(start.getDate() + 14);
-    end.setDate(end.getDate() + 28);
-  } else {
-    end.setDate(end.getDate() + 14);
-  }
-  return { start, end };
-}
 
 export async function GET(request: Request) {
   try {

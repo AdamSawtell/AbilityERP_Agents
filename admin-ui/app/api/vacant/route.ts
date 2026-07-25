@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { errorMessage } from '@/lib/db/pool';
 import { listVacantShifts, mapVacantShift } from '@/lib/db/queries/shifts';
+import { horizonWindow } from '@/lib/horizon';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,10 +9,7 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const horizon = url.searchParams.get('horizon') ?? 'today';
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + (horizon === 'period' ? 14 : 2));
+    const { start, end } = horizonWindow(horizon);
     const rows = await listVacantShifts({ start, end, limit: 20 });
     const shifts = rows.map(mapVacantShift);
     return NextResponse.json({
