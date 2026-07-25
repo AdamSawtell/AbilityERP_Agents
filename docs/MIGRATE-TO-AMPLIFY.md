@@ -234,7 +234,7 @@ When Amplify passes smoke tests:
 - [ ] All API routes respond from Amplify against remote PG
 - [ ] API key auth works (browser + cron header)
 - [ ] Admin UI dashboard loads with real data
-- [ ] EventBridge triggers all 3 cron schedules
+- [x] EventBridge triggers all 3 cron schedules (SAW054 — Scheduler + `ross-cron-invoke` Lambda)
 - [ ] No Ross processes on EC2 (`pm2 list`)
 - [ ] `ross_agent` user has no DDL/DROP privileges
 - [ ] Port 5432 firewalled to Amplify IPs only
