@@ -320,7 +320,10 @@ export function DashboardClient() {
       }
       const lines = vacant
         .slice(0, 8)
-        .map((s) => `• ${s.name || s.id}${s.urgency ? ` [${s.urgency}]` : ''}`)
+        .map(
+          (s) =>
+            `• #${s.id} ${s.name || 'Shift'}${s.urgency ? ` [${s.urgency}]` : ''}`,
+        )
         .join('\n');
       pushChat('ross', `Vacant (${horizon}): ${vacant.length}\n${lines}`);
       return;
@@ -522,7 +525,12 @@ export function DashboardClient() {
                 return (
                   <article key={`gap-${g.id}`} className="bubble bubble-gap">
                     <div className="bubble-meta">
-                      <span>Ross · no match</span>
+                      <span>
+                        Ross · no match
+                        {g.shift_id != null ? (
+                          <span className="id-tag id-tag-inline"> · shift #{g.shift_id}</span>
+                        ) : null}
+                      </span>
                       <span className={`escalation-${g.escalation_level}`}>
                         {g.escalation_level}
                       </span>
@@ -540,6 +548,9 @@ export function DashboardClient() {
                         }
                       >
                         {g.shift_name || `Shift ${g.shift_id}`}
+                        {g.shift_id != null ? (
+                          <span className="id-tag id-tag-inline">#{g.shift_id}</span>
+                        ) : null}
                       </button>
                     </h2>
                     <p className="reason">{g.reason}</p>
@@ -563,7 +574,10 @@ export function DashboardClient() {
               return (
                 <article key={`p-${p.id}`} className="bubble">
                   <div className="bubble-meta">
-                    <span>Ross · proposal #{p.id}</span>
+                    <span>
+                      Ross · proposal #{p.id}
+                      <span className="id-tag id-tag-inline"> · shift #{p.shiftId}</span>
+                    </span>
                     <span className="score">{p.score}/100</span>
                   </div>
                   <h2>
@@ -585,6 +599,7 @@ export function DashboardClient() {
                       }
                     >
                       {p.shiftName}
+                      <span className="id-tag id-tag-inline">#{p.shiftId}</span>
                     </button>
                   </h2>
                   <p className="reason">{reason}</p>
@@ -709,7 +724,7 @@ export function DashboardClient() {
                       setRecord({ kind: 'shift', id: Number(s.id), label: s.name || undefined })
                     }
                   >
-                    {s.name || s.id}
+                    <span className="id-tag">#{s.id}</span> {s.name || 'Shift'}
                   </button>
                   <span className="activity-time">{s.urgency ?? '—'}</span>
                 </li>

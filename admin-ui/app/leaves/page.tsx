@@ -116,7 +116,9 @@ export default function LeavesPage() {
                     #{p.leave_id} · {new Date(p.leave_start).toLocaleDateString()}–
                     {new Date(p.leave_end).toLocaleDateString()}
                   </td>
-                  <td>{p.shift_name}</td>
+                  <td>
+                    <span className="id-tag">#{p.shift_id}</span> {p.shift_name}
+                  </td>
                   <td className="muted">{new Date(p.shift_start).toLocaleString()}</td>
                 </tr>
               ))}

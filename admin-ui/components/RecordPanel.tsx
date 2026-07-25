@@ -121,7 +121,10 @@ export function RecordPanel({ target, onClose, onOpenWorker, onOpenShift }: Prop
       <aside className="record-panel">
         <header className="record-head">
           <div>
-            <p className="record-kicker">{target.kind === 'worker' ? 'Worker' : 'Shift'}</p>
+            <p className="record-kicker">
+              {target.kind === 'worker' ? 'Worker' : 'Shift'}
+              <span className="id-tag id-tag-inline">#{target.id}</span>
+            </p>
             <h2>{title}</h2>
           </div>
           <button type="button" className="btn" onClick={onClose}>
@@ -190,7 +193,7 @@ export function RecordPanel({ target, onClose, onOpenWorker, onOpenShift }: Prop
                         className="linkish"
                         onClick={() => onOpenShift?.(s.shiftId, s.shiftName)}
                       >
-                        {s.date} · {s.shiftName}
+                        {s.date} · #{s.shiftId} {s.shiftName}
                       </button>
                       <span className="activity-time">{s.time}</span>
                     </li>
@@ -222,6 +225,10 @@ export function RecordPanel({ target, onClose, onOpenWorker, onOpenShift }: Prop
             <section>
               <h3>When & where</h3>
               <dl className="stat-list">
+                <div>
+                  <dt>Shift ID</dt>
+                  <dd className="id-tag">{shift.shiftId}</dd>
+                </div>
                 <div>
                   <dt>Starts</dt>
                   <dd style={{ fontSize: '0.95rem' }}>

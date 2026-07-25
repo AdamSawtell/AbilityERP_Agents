@@ -896,6 +896,18 @@ button {
   margin-bottom: 10px;
 }
 
+.id-tag {
+  font-family: var(--mono);
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.id-tag-inline {
+  margin-left: 0.35rem;
+}
+
 .score {
   font-family: var(--mono);
   font-weight: 600;

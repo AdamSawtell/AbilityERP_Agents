@@ -129,7 +129,9 @@ export default function ConfirmsPage() {
                     {r.shiftStart ? new Date(r.shiftStart).toLocaleString() : '—'}
                   </td>
                   <td>{r.workerName || r.workerId}</td>
-                  <td>{r.shiftName || r.shiftId}</td>
+                  <td>
+                    <span className="id-tag">#{r.shiftId}</span> {r.shiftName || '—'}
+                  </td>
                   <td>
                     <span className={r.status === 'escalated' ? 'escalation-high' : undefined}>
                       {r.status}

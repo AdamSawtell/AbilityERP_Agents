@@ -169,7 +169,12 @@ export default function GapsPage() {
             {gaps.map((g) => (
               <tr key={g.id}>
                 <td>{new Date(g.detected_at).toLocaleString()}</td>
-                <td>{g.shift_name || g.shift_id || '—'}</td>
+                <td>
+                  {g.shift_id != null ? (
+                    <span className="id-tag">#{g.shift_id}</span>
+                  ) : null}{' '}
+                  {g.shift_name || '—'}
+                </td>
                 <td>
                   {g.credential_name || g.reason}
                   {g.credential_name && g.reason !== g.credential_name ? (
