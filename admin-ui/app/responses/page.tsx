@@ -216,15 +216,24 @@ export default function ResponsesPage() {
                     {item.response === 'REQ' ? (
                       <button
                         className="btn btn-primary"
-                        disabled={busyId === item.responseLogId || item.vacantSlots <= 0}
+                        disabled={
+                          busyId === item.responseLogId ||
+                          (item.vacantSlots <= 0 && !item.alreadyOnShift)
+                        }
                         onClick={() => void accept(item.responseLogId)}
                         title={
-                          item.vacantSlots <= 0
-                            ? 'No vacant employee slot'
-                            : 'Assign worker and mark IsReviewed'
+                          item.alreadyOnShift
+                            ? 'Already on shift — mark IsReviewed'
+                            : item.vacantSlots <= 0
+                              ? 'No vacant employee slot'
+                              : 'Assign worker and mark IsReviewed'
                         }
                       >
-                        {busyId === item.responseLogId ? '…' : 'Accept & assign'}
+                        {busyId === item.responseLogId
+                          ? '…'
+                          : item.alreadyOnShift
+                            ? 'Mark reviewed'
+                            : 'Accept & assign'}
                       </button>
                     ) : null}
                     <button
