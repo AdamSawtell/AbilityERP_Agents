@@ -137,7 +137,7 @@ export function normalizeRosterRuleParameters(
   }
 }
 
-export function normalizeRosterRule(raw: Partial<RosterRuleRecord> & Record<string, unknown>): RosterRuleRecord {
+export function normalizeRosterRule(raw: Record<string, unknown>): RosterRuleRecord {
   const ruleType = normalizeRosterRuleType(raw.ruleType ?? raw.rule_type);
   const parameters = normalizeRosterRuleParameters(ruleType, raw.parameters);
   return {

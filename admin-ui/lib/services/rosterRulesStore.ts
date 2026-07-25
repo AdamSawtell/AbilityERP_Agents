@@ -31,19 +31,19 @@ type RuleRow = {
 function mapRow(row: RuleRow): RosterRuleRecord {
   return normalizeRosterRule({
     id: row.id,
-    ruleType: row.rule_type,
+    rule_type: row.rule_type,
     name: row.name,
     description: row.description,
     enabled: row.enabled,
     enforcement: row.enforcement,
     priority: row.priority,
     parameters: row.parameters,
-    effectiveFrom: row.effective_from != null ? String(row.effective_from) : null,
-    effectiveTo: row.effective_to != null ? String(row.effective_to) : null,
-    updatedBy: row.updated_by,
-    updatedAt: row.updated_at != null ? String(row.updated_at) : null,
+    effective_from: row.effective_from != null ? String(row.effective_from) : null,
+    effective_to: row.effective_to != null ? String(row.effective_to) : null,
+    updated_by: row.updated_by,
+    updated_at: row.updated_at != null ? String(row.updated_at) : null,
     created: row.created != null ? String(row.created) : null,
-    deletedAt: row.deleted_at != null ? String(row.deleted_at) : null,
+    deleted_at: row.deleted_at != null ? String(row.deleted_at) : null,
   });
 }
 
