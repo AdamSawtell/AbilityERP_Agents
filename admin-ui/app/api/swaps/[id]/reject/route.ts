@@ -19,7 +19,8 @@ export async function POST(request: Request, context: Ctx) {
         { status: 400 },
       );
     }
-    const row = await rejectSwap(id, by, body?.notes);
+    const notes = typeof body?.notes === 'string' ? body.notes : undefined;
+    const row = await rejectSwap(id, by, notes);
     if (!row) return NextResponse.json({ error: 'not_found_or_not_open' }, { status: 404 });
     return NextResponse.json({ success: true, id: Number(row.id), status: row.status });
   } catch (err) {
