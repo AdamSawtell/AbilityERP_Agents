@@ -13,6 +13,7 @@ const links = [
   { href: '/swaps', label: 'Swaps' },
   { href: '/leaves', label: 'Leaves' },
   { href: '/skills', label: 'Skills' },
+  { href: '/rules', label: 'Rules' },
   { href: '/config', label: 'Config' },
   { href: '/audit', label: 'Audit' },
 ];

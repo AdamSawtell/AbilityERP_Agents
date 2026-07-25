@@ -1,7 +1,14 @@
 import { query } from '../db/pool';
 import { loadShiftContext } from '../db/queries/shifts';
 import { getConfig } from '../services/configStore';
+import { listActiveRosterRules } from '../services/rosterRulesStore';
 import { DEFAULT_SOFT_WEIGHTS, getSoftWeights } from '../services/skills';
+import { evaluateConfigurableSafetyRules } from './rosterRuleEvaluators';
+import {
+  ruleBlocksMatch,
+  type RosterRuleRecord,
+  type RosterRuleType,
+} from './rosterRules';
 import type {
   HardRuleResult,
   MatchBlocker,
@@ -10,6 +17,30 @@ import type {
   SoftRuleResult,
   WorkerRow,
 } from './types';
+
+const SAFETY_TYPES: RosterRuleType[] = [
+  'min_break_between_shifts',
+  'max_weekly_hours',
+  'max_consecutive_days',
+  'max_shift_hours',
+];
+
+function rulesByType(rules: RosterRuleRecord[]): Map<RosterRuleType, RosterRuleRecord> {
+  const map = new Map<RosterRuleType, RosterRuleRecord>();
+  for (const rule of rules) {
+    if (!map.has(rule.ruleType)) map.set(rule.ruleType, rule);
+  }
+  return map;
+}
+
+function isBuiltinEnabled(
+  map: Map<RosterRuleType, RosterRuleRecord>,
+  type: RosterRuleType,
+): boolean {
+  const rule = map.get(type);
+  // Missing catalogue row → keep legacy behaviour (enabled).
+  return rule ? rule.enabled : true;
+}
 
 function scaleEarned(raw: number, defaultMax: number, weight: number): number {
   if (defaultMax <= 0 || weight <= 0) return 0;
@@ -75,113 +106,150 @@ async function loadCandidateWorkers(shiftId: number): Promise<WorkerRow[]> {
 
 async function evaluateHardRules(
   worker: WorkerRow,
-  shift: Awaited<ReturnType<typeof loadShiftContext>> & object,
+  shift: NonNullable<Awaited<ReturnType<typeof loadShiftContext>>>,
+  activeRules: RosterRuleRecord[],
 ): Promise<{ pass: boolean; results: HardRuleResult[]; failReason?: string }> {
   const results: HardRuleResult[] = [];
+  const byType = rulesByType(activeRules);
 
   // 1. Not excluded
-  const excluded = (worker.hr_exclude ?? 'N') === 'Y';
-  results.push({
-    rule: 'not_excluded',
-    pass: !excluded,
-    detail: excluded ? 'hr_exclude=Y' : undefined,
-  });
-  if (excluded) return { pass: false, results, failReason: 'excluded' };
+  if (isBuiltinEnabled(byType, 'not_excluded')) {
+    const excluded = (worker.hr_exclude ?? 'N') === 'Y';
+    results.push({
+      rule: 'not_excluded',
+      pass: !excluded,
+      detail: excluded ? 'hr_exclude=Y' : undefined,
+    });
+    if (excluded) return { pass: false, results, failReason: 'excluded' };
+  }
 
   // 2. Not on approved leave overlapping shift window (SAW003: ApproverStatus AP)
-  const leave = await query<{ ok: number }>(
-    `SELECT 1 AS ok
-     FROM adempiere.aberp_unavailability_leave ul
-     WHERE ul.isactive = 'Y'
-       AND ul.aberp_approverstatus = 'AP'
-       AND (
-         ul.aberp_user_contact_id = $1
-         OR ul.c_bpartner_staff_id = $2
-       )
-       AND ul.startdate <= $4::timestamp
-       AND ul.enddate >= $3::timestamp
-     LIMIT 1`,
-    [worker.ad_user_id, worker.worker_id, shift!.startTs, shift!.endTs],
-  );
-  const onLeave = leave.rows.length > 0;
-  results.push({
-    rule: 'not_on_leave',
-    pass: !onLeave,
-  });
-  if (onLeave) return { pass: false, results, failReason: 'leave_block' };
+  if (isBuiltinEnabled(byType, 'not_on_leave')) {
+    const leave = await query<{ ok: number }>(
+      `SELECT 1 AS ok
+       FROM adempiere.aberp_unavailability_leave ul
+       WHERE ul.isactive = 'Y'
+         AND ul.aberp_approverstatus = 'AP'
+         AND (
+           ul.aberp_user_contact_id = $1
+           OR ul.c_bpartner_staff_id = $2
+         )
+         AND ul.startdate <= $4::timestamp
+         AND ul.enddate >= $3::timestamp
+       LIMIT 1`,
+      [worker.ad_user_id, worker.worker_id, shift.startTs, shift.endTs],
+    );
+    const onLeave = leave.rows.length > 0;
+    results.push({
+      rule: 'not_on_leave',
+      pass: !onLeave,
+    });
+    if (onLeave) return { pass: false, results, failReason: 'leave_block' };
+  }
 
   // 3. No shift clash (merged timestamps; exclude templates + this shift)
-  const clash = await query<{ ok: number }>(
-    `SELECT 1 AS ok
-     FROM adempiere.aberp_rostered_shiftstaff ss
-     JOIN adempiere.aberp_rostered_shift s2
-       ON s2.aberp_rostered_shift_id = ss.aberp_rostered_shift_id
-     WHERE ss.isactive = 'Y'
-       AND (
-         ss.c_bpartner_staff_id = $1
-         OR ss.aberp_user_contact_id = $2
-       )
-       AND COALESCE(ss.aberp_declineshift, 'N') <> 'Y'
-       AND s2.isactive = 'Y'
-       AND COALESCE(s2.iscancelled, 'N') = 'N'
-       AND COALESCE(s2.aberp_isshiftrosteredtemplate, 'N') = 'N'
-       AND s2.aberp_rostered_shift_id <> $3
-       AND COALESCE(s2.starttime, s2.startdate) < $5::timestamp
-       AND COALESCE(s2.endtime, s2.enddate, s2.starttime, s2.startdate) > $4::timestamp
-     LIMIT 1`,
-    [worker.worker_id, worker.ad_user_id, shift!.shiftId, shift!.startTs, shift!.endTs],
-  );
-  const hasClash = clash.rows.length > 0;
-  results.push({ rule: 'no_time_clash', pass: !hasClash });
-  if (hasClash) return { pass: false, results, failReason: 'time_clash' };
+  if (isBuiltinEnabled(byType, 'no_time_clash')) {
+    const clash = await query<{ ok: number }>(
+      `SELECT 1 AS ok
+       FROM adempiere.aberp_rostered_shiftstaff ss
+       JOIN adempiere.aberp_rostered_shift s2
+         ON s2.aberp_rostered_shift_id = ss.aberp_rostered_shift_id
+       WHERE ss.isactive = 'Y'
+         AND (
+           ss.c_bpartner_staff_id = $1
+           OR ss.aberp_user_contact_id = $2
+         )
+         AND COALESCE(ss.aberp_declineshift, 'N') <> 'Y'
+         AND s2.isactive = 'Y'
+         AND COALESCE(s2.iscancelled, 'N') = 'N'
+         AND COALESCE(s2.aberp_isshiftrosteredtemplate, 'N') = 'N'
+         AND s2.aberp_rostered_shift_id <> $3
+         AND COALESCE(s2.starttime, s2.startdate) < $5::timestamp
+         AND COALESCE(s2.endtime, s2.enddate, s2.starttime, s2.startdate) > $4::timestamp
+       LIMIT 1`,
+      [worker.worker_id, worker.ad_user_id, shift.shiftId, shift.startTs, shift.endTs],
+    );
+    const hasClash = clash.rows.length > 0;
+    results.push({ rule: 'no_time_clash', pass: !hasClash });
+    if (hasClash) return { pass: false, results, failReason: 'time_clash' };
+  }
 
   // 4. All required credentials held and covering shift window
-  if (shift!.credentialIds.length > 0) {
-    const held = await query<{ cnt: string }>(
-      `SELECT COUNT(DISTINCT ca.aberp_credentials_id)::text AS cnt
-       FROM adempiere.aberp_credentialassignment ca
-       WHERE ca.isactive = 'Y'
-         AND ca.aberp_credentials_id = ANY($1::numeric[])
-         AND (
-           ca.aberp_user_contact_id = $2
-           OR ca.c_bpartner_staff_id = $3
-         )
-         AND (ca.startdate IS NULL OR ca.startdate <= $4::timestamp)
-         AND (ca.aberp_expirydate IS NULL OR ca.aberp_expirydate >= $5::timestamp)`,
-      [
-        shift!.credentialIds,
-        worker.ad_user_id,
-        worker.worker_id,
-        shift!.startTs,
-        shift!.endTs,
-      ],
-    );
-    const count = Number(held.rows[0]?.cnt ?? 0);
-    const pass = count >= shift!.credentialIds.length;
-    results.push({
-      rule: 'credentials_held',
-      pass,
-      detail: pass
-        ? undefined
-        : `held ${count}/${shift!.credentialIds.length}: ${shift!.credentialNames.join(', ')}`,
-    });
-    if (!pass) return { pass: false, results, failReason: 'missing_credential' };
-  } else {
-    results.push({ rule: 'credentials_held', pass: true, detail: 'no credentials required' });
+  if (isBuiltinEnabled(byType, 'credentials_held')) {
+    if (shift.credentialIds.length > 0) {
+      const held = await query<{ cnt: string }>(
+        `SELECT COUNT(DISTINCT ca.aberp_credentials_id)::text AS cnt
+         FROM adempiere.aberp_credentialassignment ca
+         WHERE ca.isactive = 'Y'
+           AND ca.aberp_credentials_id = ANY($1::numeric[])
+           AND (
+             ca.aberp_user_contact_id = $2
+             OR ca.c_bpartner_staff_id = $3
+           )
+           AND (ca.startdate IS NULL OR ca.startdate <= $4::timestamp)
+           AND (ca.aberp_expirydate IS NULL OR ca.aberp_expirydate >= $5::timestamp)`,
+        [
+          shift.credentialIds,
+          worker.ad_user_id,
+          worker.worker_id,
+          shift.startTs,
+          shift.endTs,
+        ],
+      );
+      const count = Number(held.rows[0]?.cnt ?? 0);
+      const pass = count >= shift.credentialIds.length;
+      results.push({
+        rule: 'credentials_held',
+        pass,
+        detail: pass
+          ? undefined
+          : `held ${count}/${shift.credentialIds.length}: ${shift.credentialNames.join(', ')}`,
+      });
+      if (!pass) return { pass: false, results, failReason: 'missing_credential' };
+    } else {
+      results.push({ rule: 'credentials_held', pass: true, detail: 'no credentials required' });
+    }
   }
 
   // 5. Gender preference (hard; override only at assign time)
-  if (shift!.genderIds.length > 0) {
-    const workerGender = worker.gender_id ?? 0;
-    const pass = shift!.genderIds.every((g) => workerGender === g);
-    results.push({
-      rule: 'gender_preference',
-      pass,
-      detail: pass ? undefined : `worker gender ${workerGender} vs required ${shift!.genderIds.join(',')}`,
-    });
-    if (!pass) return { pass: false, results, failReason: 'gender_pref' };
-  } else {
-    results.push({ rule: 'gender_preference', pass: true, detail: 'no gender preference' });
+  if (isBuiltinEnabled(byType, 'gender_preference')) {
+    if (shift.genderIds.length > 0) {
+      const workerGender = worker.gender_id ?? 0;
+      const pass = shift.genderIds.every((g) => workerGender === g);
+      results.push({
+        rule: 'gender_preference',
+        pass,
+        detail: pass
+          ? undefined
+          : `worker gender ${workerGender} vs required ${shift.genderIds.join(',')}`,
+      });
+      if (!pass) return { pass: false, results, failReason: 'gender_pref' };
+    } else {
+      results.push({ rule: 'gender_preference', pass: true, detail: 'no gender preference' });
+    }
+  }
+
+  // 6–9. Configurable safety rules (AbilityAPP-style)
+  const safetyRules = activeRules.filter(
+    (r) => r.enabled && SAFETY_TYPES.includes(r.ruleType),
+  );
+  if (safetyRules.length > 0) {
+    const safety = await evaluateConfigurableSafetyRules(safetyRules, worker, shift);
+    for (const evalResult of safety) {
+      const ok = evalResult.verdict === 'pass';
+      results.push({
+        rule: evalResult.ruleType,
+        pass: ok || evalResult.enforcement === 'warning',
+        detail: ok ? undefined : evalResult.message,
+      });
+      if (ruleBlocksMatch(evalResult)) {
+        return {
+          pass: false,
+          results,
+          failReason: evalResult.ruleType,
+        };
+      }
+    }
   }
 
   return { pass: true, results };
@@ -452,12 +520,19 @@ export async function matchShift(shiftId: number): Promise<MatchResult> {
 
   const config = await getConfig();
   const softWeights = await getSoftWeights();
+  let activeRules: RosterRuleRecord[] = [];
+  try {
+    activeRules = await listActiveRosterRules(shift.shiftDate);
+  } catch {
+    // Table missing pre-migration — fall back to built-in-only behaviour.
+    activeRules = [];
+  }
   const workers = await loadCandidateWorkers(shiftId);
   const fails: FailBucket = {};
   const candidates: MatchCandidate[] = [];
 
   for (const worker of workers) {
-    const hard = await evaluateHardRules(worker, shift);
+    const hard = await evaluateHardRules(worker, shift, activeRules);
     if (!hard.pass) {
       const reason = hard.failReason ?? 'unknown';
       fails[reason] = (fails[reason] ?? 0) + 1;

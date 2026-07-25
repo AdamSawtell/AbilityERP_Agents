@@ -997,6 +997,105 @@ button {
   font-weight: 650;
 }
 
+.rules-list {
+  display: grid;
+  gap: 14px;
+}
+
+.rules-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.rules-meta {
+  margin: 6px 0 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.rules-type {
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.rules-enforcement {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--muted);
+}
+
+.rules-desc {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.rules-params {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  overflow: auto;
+}
+
+.rules-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 40;
+}
+
+.rules-modal {
+  width: min(560px, 100%);
+  max-height: min(90vh, 820px);
+  overflow: auto;
+}
+
+.rules-modal select {
+  width: 100%;
+  font-family: inherit;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+.rules-param-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.rules-param-grid h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.rules-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 @media (max-width: 1100px) {
   .dash {
     grid-template-columns: 1fr;
